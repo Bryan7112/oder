@@ -1,0 +1,982 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>迪爾奧美經銷下單系統</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700;900&display=swap');
+
+:root {
+  --bg: #f7f7f3;
+  --surface: #ffffff;
+  --surface2: #f2f2ed;
+  --border: #e0e0db;
+  --border-hover: #ccc;
+  --text: #2a2a2a;
+  --text-dim: #777;
+  --text-muted: #aaa;
+  --accent: #e8a840;
+  --accent-dim: #c88a2a;
+  --accent-glow: rgba(232, 168, 64, 0.1);
+  --green: #34a853;
+  --red: #d93025;
+  --blue: #4285f4;
+  --radius: 8px;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: 'Noto Sans TC', -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  line-height: 1.5;
+}
+
+/* ===== HEADER ===== */
+.header {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 16px 24px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  backdrop-filter: blur(20px);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+
+.header-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.logo-text {
+  font-size: 22px;
+  font-weight: 900;
+  letter-spacing: -0.5px;
+  color: #333;
+}
+
+.logo-sub {
+  font-size: 12px;
+  color: var(--text-dim);
+  font-weight: 300;
+}
+
+.cart-summary {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.cart-badge {
+  background: var(--accent);
+  color: #000;
+  font-weight: 700;
+  font-size: 13px;
+  padding: 4px 12px;
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cart-total {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+/* ===== SHIPPING TOGGLE ===== */
+.shipping-toggle {
+  display: flex;
+  gap: 4px;
+  background: var(--surface2);
+  border-radius: var(--radius);
+  padding: 3px;
+  border: 1px solid var(--border);
+}
+
+.ship-btn {
+  padding: 6px 14px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 13px;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.ship-btn:hover { color: var(--text); }
+.ship-btn.active {
+  background: var(--accent);
+  color: #000;
+  font-weight: 700;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.ship-btn.active-wholesale {
+  background: var(--blue);
+  color: #fff;
+  font-weight: 700;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.shipping-label {
+  display: inline-block;
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-weight: 700;
+  margin-left: 8px;
+}
+
+.shipping-label.direct { background: var(--accent); color: #000; }
+.shipping-label.wholesale { background: var(--blue); color: #fff; }
+
+/* ===== SEARCH & FILTERS ===== */
+.toolbar {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 16px 24px;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.search-box {
+  flex: 1;
+  min-width: 200px;
+  position: relative;
+}
+
+.search-box input {
+  width: 100%;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 10px 14px 10px 40px;
+  border-radius: var(--radius);
+  font-size: 14px;
+  font-family: inherit;
+  transition: border-color 0.2s;
+  outline: none;
+}
+
+.search-box input:focus { border-color: var(--accent); }
+
+.search-box::before {
+  content: '🔍';
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 16px;
+  pointer-events: none;
+}
+
+.filter-tabs {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.filter-tab {
+  padding: 8px 14px;
+  border-radius: var(--radius);
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  font-size: 13px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.filter-tab:hover { border-color: var(--border-hover); color: var(--text); }
+.filter-tab.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #000;
+  font-weight: 700;
+}
+
+.filter-tab .count {
+  font-size: 11px;
+  opacity: 0.7;
+  margin-left: 2px;
+}
+
+/* ===== PRODUCT TYPE FILTER ===== */
+.type-filters {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px 12px;
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.type-tag {
+  padding: 4px 10px;
+  border-radius: 20px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.type-tag:hover { color: var(--text); border-color: var(--border-hover); }
+.type-tag.active { background: var(--surface2); color: var(--accent); border-color: var(--accent-dim); }
+
+/* ===== PRODUCT LIST ===== */
+.product-list {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px 120px;
+}
+
+.group-header {
+  padding: 12px 0 6px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--accent);
+  border-bottom: 1px solid var(--border);
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  position: sticky;
+  top: 68px;
+  background: var(--bg);
+  z-index: 10;
+}
+
+.group-header .count {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--text-muted);
+  background: var(--surface2);
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+.product-row {
+  display: grid;
+  grid-template-columns: 1fr 75px 60px 60px 70px 80px;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+  gap: 8px;
+  transition: background 0.15s;
+}
+
+.product-row:hover { background: var(--surface); }
+.product-row.has-qty { background: var(--accent-glow); }
+
+.product-name {
+  font-size: 13px;
+  line-height: 1.4;
+  word-break: break-all;
+}
+
+.product-name .tag {
+  display: inline-block;
+  font-size: 10px;
+  padding: 1px 5px;
+  border-radius: 3px;
+  margin-right: 3px;
+  font-weight: 500;
+}
+
+.tag-preorder { background: #7c3aed22; color: #a78bfa; border: 1px solid #7c3aed44; }
+.tag-soldout { background: #fee2e2; color: #b91c1c; border: 1px solid #fca5a5; }
+
+.product-price {
+  font-size: 13px;
+  color: var(--text-dim);
+  text-align: center;
+}
+
+.product-cost {
+  font-size: 13px;
+  color: var(--text);
+  text-align: center;
+  font-weight: 500;
+}
+
+.product-cost.price-active {
+  color: var(--accent);
+  font-weight: 700;
+  position: relative;
+}
+
+.col-headers .col-active {
+  color: var(--accent) !important;
+  font-weight: 700;
+}
+
+.qty-input {
+  width: 100%;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--accent);
+  text-align: center;
+  padding: 6px 4px;
+  border-radius: 6px;
+  font-size: 15px;
+  font-weight: 700;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.qty-input:focus { border-color: var(--accent); }
+.qty-input::-webkit-inner-spin-button { opacity: 1; }
+
+.product-subtotal {
+  font-size: 13px;
+  text-align: right;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.product-subtotal.has-value { color: var(--green); }
+
+/* ===== COL HEADERS ===== */
+.col-headers {
+  display: grid;
+  grid-template-columns: 1fr 75px 60px 60px 70px 80px;
+  padding: 8px 0;
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 2px solid var(--border);
+  gap: 8px;
+  position: sticky;
+  top: 68px;
+  background: var(--bg);
+  z-index: 11;
+}
+
+.col-headers span:nth-child(2),
+.col-headers span:nth-child(3),
+.col-headers span:nth-child(4) { text-align: center; }
+.col-headers span:last-child { text-align: right; }
+
+/* ===== BOTTOM BAR ===== */
+.bottom-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  padding: 12px 24px;
+  z-index: 100;
+  backdrop-filter: blur(20px);
+  box-shadow: 0 -2px 8px rgba(0,0,0,0.06);
+}
+
+.bottom-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.order-stats {
+  display: flex;
+  gap: 20px;
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+.order-stats strong { color: var(--text); }
+
+.btn-export {
+  background: var(--accent);
+  color: #000;
+  border: none;
+  padding: 10px 24px;
+  border-radius: var(--radius);
+  font-size: 15px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-export:hover { background: #f0be60; transform: translateY(-1px); }
+.btn-export:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+.btn-clear {
+  background: transparent;
+  color: var(--text-dim);
+  border: 1px solid var(--border);
+  padding: 10px 16px;
+  border-radius: var(--radius);
+  font-size: 13px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-clear:hover { border-color: var(--red); color: var(--red); }
+
+/* ===== EMPTY STATE ===== */
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--text-muted);
+}
+
+.empty-state .icon { font-size: 48px; margin-bottom: 12px; }
+.empty-state p { font-size: 14px; }
+
+/* ===== TOAST ===== */
+.toast {
+  position: fixed;
+  top: 80px;
+  right: 24px;
+  background: var(--green);
+  color: #000;
+  padding: 12px 20px;
+  border-radius: var(--radius);
+  font-weight: 700;
+  font-size: 14px;
+  z-index: 1000;
+  transform: translateX(120%);
+  transition: transform 0.3s ease;
+}
+
+.toast.show { transform: translateX(0); }
+
+/* ===== MOBILE ===== */
+@media (max-width: 768px) {
+  .header { padding: 12px 16px; }
+  .toolbar { padding: 12px 16px; }
+  .type-filters { padding: 0 16px 8px; }
+  .product-list { padding: 0 16px 120px; }
+
+  .product-row {
+    grid-template-columns: 1fr;
+    gap: 4px;
+    padding: 10px 0;
+  }
+
+  .product-row .mobile-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  .col-headers { display: none; }
+
+  .qty-input { width: 70px; }
+
+  .bottom-bar { padding: 10px 16px; }
+
+  .order-stats { gap: 12px; font-size: 12px; }
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+/* no-results animation */
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+.fade-in { animation: fadeIn 0.3s ease; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-inner">
+    <div class="logo">
+      <div>
+        <div class="logo-text">迪爾奧美經銷下單</div>
+        <div class="logo-sub">產品目錄 · 409 品項 · 2025/02/04 更新</div>
+      </div>
+    </div>
+    <div class="shipping-toggle">
+      <button class="ship-btn" id="btnDirect" onclick="setShipping('direct')">🏝️ 台灣直出</button>
+      <button class="ship-btn active-wholesale" id="btnWholesale" onclick="setShipping('wholesale')">📦 批發（大陸發貨）</button>
+    </div>
+    <div class="cart-summary">
+      <div class="cart-badge" id="cartBadge">🛒 <span id="cartCount">0</span> 項</div>
+      <div class="cart-total">$<span id="cartTotal">0</span></div>
+    </div>
+  </div>
+</div>
+
+<div class="toolbar">
+  <div class="search-box">
+    <input type="text" id="searchInput" placeholder="搜尋商品名稱... 例如：iPhone 17 Pro 玻璃貼" autocomplete="off">
+  </div>
+  <div class="filter-tabs" id="brandFilters"></div>
+</div>
+
+<div class="type-filters" id="typeFilters"></div>
+
+<div class="product-list" id="productList">
+  <div class="col-headers">
+    <span>商品名稱</span>
+    <span>建議售價</span>
+    <span>人民幣</span>
+    <span>直出價</span>
+    <span>數量</span>
+    <span>小計</span>
+  </div>
+  <div id="productContainer"></div>
+</div>
+
+<div class="bottom-bar">
+  <div class="bottom-inner">
+    <div class="order-stats">
+      <span>品項: <strong id="statItems">0</strong></span>
+      <span>總數: <strong id="statQty">0</strong></span>
+      <span>總額: <strong id="statTotal" style="color:var(--accent)">$0</strong></span>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <button class="btn-clear" onclick="clearAll()">清空</button>
+      <button class="btn-export" id="btnExport" onclick="exportExcel()" disabled>
+        💾 下載Excel
+      </button>
+      <button class="btn-export" id="btnSubmit" onclick="openSubmitModal()" disabled style="background:#5cb85c;">
+        📤 送出訂單
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- SUBMIT MODAL -->
+<div id="submitModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.35);z-index:200;align-items:center;justify-content:center;">
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:28px;max-width:420px;width:90%;margin:auto;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);box-shadow:0 8px 32px rgba(0,0,0,0.12);">
+    <h3 style="margin-bottom:16px;font-size:18px;">📤 送出訂單</h3>
+    <label style="font-size:13px;color:var(--text-dim);display:block;margin-bottom:4px;">經銷商名稱 *</label>
+    <input type="text" id="dealerName" placeholder="請輸入您的公司/店名" style="width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:10px 12px;border-radius:6px;font-size:14px;font-family:inherit;margin-bottom:12px;outline:none;">
+    <label style="font-size:13px;color:var(--text-dim);display:block;margin-bottom:4px;">備註（選填）</label>
+    <textarea id="dealerNote" placeholder="特殊需求、交期要求等..." rows="3" style="width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:10px 12px;border-radius:6px;font-size:14px;font-family:inherit;margin-bottom:16px;outline:none;resize:vertical;"></textarea>
+    <div id="submitStatus" style="display:none;padding:10px;border-radius:6px;margin-bottom:12px;font-size:13px;"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;">
+      <button onclick="closeSubmitModal()" style="background:transparent;border:1px solid var(--border);color:var(--text-dim);padding:8px 16px;border-radius:6px;font-family:inherit;cursor:pointer;">取消</button>
+      <button id="btnSend" onclick="submitOrder()" style="background:var(--accent);color:#000;border:none;padding:8px 20px;border-radius:6px;font-weight:700;font-family:inherit;cursor:pointer;">確認送出</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ==================== CATALOG DATA ====================
+const CATALOG = [{"k":"iPhone 17","n":"(2.5D黑邊)imos AGbC康寧授權玻璃貼for iPhone 17/17 Pro/16 Pro $1090","r":1090,"rmb":124,"tw":139,"b":"4710007839591"},{"k":"iPhone 17","n":"(2.5D黑邊)imos AGbC康寧授權玻璃貼for iPhone 17 Pro Max/16 Pro Max $1090","r":1090,"rmb":124,"tw":139,"b":"4710007839607"},{"k":"iPhone 17","n":"(3D黑邊)imos AGbC康寧授權玻璃貼for iPhone 17/17 Pro/16 Pro$1390","r":1390,"rmb":152,"tw":167,"b":"4710007839638"},{"k":"iPhone 17","n":"(3D黑邊)imos AGbC康寧授權玻璃貼for iPhone 17 Pro Max/16 Pro Max $1390","r":1390,"rmb":152,"tw":167,"b":"4710007839645"},{"k":"iPhone 17","n":"(2.5D黑邊)imos AR低反光玻璃貼for iPhone 17/17 Pro/16 Pro  $1390","r":1390,"rmb":152,"tw":167,"b":"4710007839874"},{"k":"iPhone 17","n":"(2.5D黑邊)imos AR低反光玻璃貼for iPhone 17 Pro Max/16 Pro Max $1390","r":1390,"rmb":152,"tw":167,"b":"4710007839881"},{"k":"iPhone 17","n":"(2.5D黑邊)imos AR低反光低藍光CPF60玻璃貼for iPhone 17/17 Pro/16 Pro  $1490","r":1490,"rmb":152,"tw":167,"b":"4710007839836"},{"k":"iPhone 17","n":"(2.5D黑邊)imos AR低反光低藍光CPF60玻璃貼for iPhone 17 Pro Max/16 Pro Max  $1490","r":1490,"rmb":152,"tw":167,"b":"4710007839843"},{"k":"iPhone 17","n":"(2.5D黑邊-防窺)imos RPF60低藍光玻璃貼for iPhone 17/17 Pro/16 Pro  $1390(預購中)","r":1390,"rmb":152,"tw":167,"b":"4710007839799"},{"k":"iPhone 17","n":"(2.5D黑邊-防窺)imos RPF60低藍光玻璃貼for iPhone 17 Pro Max/16 Pro Max$1390","r":1390,"rmb":152,"tw":167,"b":"4710007839805"},{"k":"iPhone 17","n":"(2.5D黑邊-霧面)imos RPF80低藍光玻璃貼for iPhone 17/17 Pro/16 Pro $1390","r":1390,"rmb":152,"tw":167,"b":"4710007839300"},{"k":"iPhone 17","n":"(2.5D黑邊-霧面)imos RPF80低藍光玻璃貼for iPhone 17 Pro Max/16 Pro Max $1390","r":1390,"rmb":152,"tw":167,"b":"4710007839317"},{"k":"iPhone 17","n":"(2.5D黑邊-亮面)imos RPF80低藍光玻璃貼for iPhone 17/17 Pro/16 Pro $1390","r":1390,"rmb":152,"tw":167,"b":"4710007839676"},{"k":"iPhone 17","n":"(2.5D黑邊-亮面)imos RPF80低藍光玻璃貼for iPhone 17 Pro Max/16 Pro Max $1390","r":1390,"rmb":152,"tw":167,"b":"4710007839683"},{"k":"iPhone 17","n":"(3D黑邊-亮面)imos RPF80低藍光玻璃貼for iPhone 17/17 Pro/16 Pro $1490","r":1490,"rmb":161,"tw":176,"b":"4710007839713"},{"k":"iPhone 17","n":"(3D黑邊-亮面)imos RPF80低藍光玻璃貼for iPhone 17 Pro Max/16 Pro Max $1490","r":1490,"rmb":161,"tw":176,"b":"4710007839720"},{"k":"iPhone 17","n":"(2.5D黑邊-亮面)imos RPF80低藍光藍寶石玻璃貼for iPhone 17/17 Pro/16 Pro $1699","r":1699,"rmb":219,"tw":234,"b":"4710007839478"},{"k":"iPhone 17","n":"(2.5D黑邊-亮面)imos RPF80低藍光藍寶石玻璃貼for iPhone 17 Pro Max/16 Pro Max $1699","r":1699,"rmb":219,"tw":234,"b":"4710007839485"},{"k":"iPhone 17","n":"(2.5D黑邊-亮面)imos 藍寶石玻璃貼for iPhone 17/17 Pro/16 Pro  $1699","r":1699,"rmb":219,"tw":234,"b":""},{"k":"iPhone 17","n":"(2.5D黑邊-亮面)imos 藍寶石玻璃貼for iPhone 17 Pro Max/16 Pro Max $1699","r":1699,"rmb":219,"tw":234,"b":""},{"k":"iPhone 17","n":"imos黑色軍規殼for iPhone 17$890","r":890,"rmb":103,"tw":118,"b":"4710007838457"},{"k":"iPhone 17","n":"imos黑色軍規殼for iPhone 17 Pro$890","r":890,"rmb":103,"tw":118,"b":"4710007838471"},{"k":"iPhone 17","n":"imos黑色軍規殼for iPhone 17 Pro Max$890","r":890,"rmb":103,"tw":118,"b":"4710007838488"},{"k":"iPhone 17","n":"imos透明軍規殼for iPhone 17$890(預購中)","r":890,"rmb":103,"tw":118,"b":"4710007838419"},{"k":"iPhone 17","n":"imos透明軍規殼for iPhone 17 Pro$890(預購中)","r":890,"rmb":103,"tw":118,"b":"4710007838433"},{"k":"iPhone 17","n":"imos透明軍規殼for iPhone 17 Pro Max$890(預購中)","r":890,"rmb":103,"tw":118,"b":"4710007838440"},{"k":"iPhone 17","n":"imos黑色磁吸軍規殼for iPhone 17$1090","r":1090,"rmb":133,"tw":148,"b":"4710007838532"},{"k":"iPhone 17","n":"imos黑色磁吸軍規殼for iPhone 17 Pro$1090","r":1090,"rmb":133,"tw":148,"b":"4710007838556"},{"k":"iPhone 17","n":"imos黑色磁吸軍規殼for iPhone 17 Pro Max$1090","r":1090,"rmb":133,"tw":148,"b":"4710007838563"},{"k":"iPhone 17","n":"(售完為止)imos藍色磁吸軍規殼for iPhone 17$1090","r":1090,"rmb":133,"tw":148,"b":"4710007838617"},{"k":"iPhone 17","n":"(售完為止)imos紫色磁吸軍規殼for iPhone 17$1090","r":1090,"rmb":133,"tw":148,"b":"4710007838655"},{"k":"iPhone 17","n":"(售完為止)imos紫色磁吸軍規殼for iPhone 17 Pro Max$1090","r":1090,"rmb":133,"tw":148,"b":"4710007838686"},{"k":"iPhone 17","n":"(售完為止)imos綠色磁吸軍規殼for iPhone 17$1090","r":1090,"rmb":133,"tw":148,"b":"4710007838570"},{"k":"iPhone 17","n":"(售完為止)imos綠色磁吸軍規殼for iPhone 17 Pro$1090","r":1090,"rmb":133,"tw":148,"b":"4710007838594"},{"k":"iPhone 17","n":"(售完為止)imos綠色磁吸軍規殼for iPhone 17 Pro Max$1090","r":1090,"rmb":133,"tw":148,"b":"4710007838600"},{"k":"iPhone 17","n":"imos透明磁吸軍規殼for iPhone 17$1090","r":1090,"rmb":133,"tw":148,"b":"4710007838495"},{"k":"iPhone 17","n":"imos透明磁吸軍規殼for iPhone 17 Pro$1090(預購中)","r":1090,"rmb":133,"tw":148,"b":"4710007838518"},{"k":"iPhone 17","n":"imos透明磁吸軍規殼for iPhone 17 Pro Max$1090","r":1090,"rmb":133,"tw":148,"b":"4710007838525"},{"k":"iPhone 17","n":"imos黑色磁吸支架軍規殼for iPhone 17$1290","r":1290,"rmb":148,"tw":163,"b":"4710007838730"},{"k":"iPhone 17","n":"imos黑色磁吸支架軍規殼for iPhone 17 Pro$1290","r":1290,"rmb":148,"tw":163,"b":"4710007838754"},{"k":"iPhone 17","n":"imos黑色磁吸支架軍規殼for iPhone 17 Pro Max$1290(預購中)","r":1290,"rmb":148,"tw":163,"b":"4710007838761"},{"k":"iPhone 17","n":"(售完為止)imos紫色磁吸支架軍規殼for iPhone 17$1290","r":1290,"rmb":148,"tw":163,"b":"4710007838853"},{"k":"iPhone 17","n":"(售完為止)imos綠色磁吸支架軍規殼for iPhone 17$1290","r":1290,"rmb":148,"tw":163,"b":"4710007838778"},{"k":"iPhone 17","n":"imos透明磁吸支架軍規殼for iPhone 17$1290(預購中)","r":1290,"rmb":148,"tw":163,"b":"4710007838693"},{"k":"iPhone 17","n":"imos透明磁吸支架軍規殼for iPhone 17 Pro$1290(預購中)","r":1290,"rmb":148,"tw":163,"b":"4710007838716"},{"k":"iPhone 17","n":"imos透明磁吸支架軍規殼for iPhone 17 Pro Max$1290(預購中)","r":1290,"rmb":148,"tw":163,"b":"4710007838723"},{"k":"iPhone 17","n":"imos藍寶石鏡頭貼for iPhone 17 (鋁合金-黑色)$550","r":550,"rmb":78,"tw":93,"b":"4710007838891"},{"k":"iPhone 17","n":"imos藍寶石鏡頭貼for iPhone 17 (鋁合金-銀色)$550","r":550,"rmb":78,"tw":93,"b":"4710007838907"},{"k":"iPhone 17","n":"imos藍寶石鏡頭貼for iPhone 17 (鋁合金-綠色)$550","r":550,"rmb":78,"tw":93,"b":"4710007838914"},{"k":"iPhone 17","n":"imos藍寶石鏡頭貼for iPhone 17 (鋁合金-藍色)$550","r":550,"rmb":78,"tw":93,"b":"4710007838921"},{"k":"iPhone 17","n":"imos藍寶石鏡頭貼for iPhone 17 (鋁合金-紫色)$550","r":550,"rmb":78,"tw":93,"b":"4710007838938"},{"k":"iPhone 17","n":"imos藍寶石鏡頭貼for iPhone 17 (不鏽鋼-燒鈦色)$600","r":600,"rmb":83,"tw":98,"b":"4710007838945"},{"k":"iPhone 17","n":"imos藍寶石鏡頭貼for iPhone 17 Pro/Pro Max(不鏽鋼-銀色)$800","r":800,"rmb":98,"tw":113,"b":"4710007839010"},{"k":"iPhone 17","n":"imos藍寶石鏡頭貼for iPhone 17 Pro/Pro Max(不鏽鋼-藍色)$800","r":800,"rmb":98,"tw":113,"b":"4710007839027"},{"k":"iPhone 17","n":"imos藍寶石鏡頭貼for iPhone 17 Pro/Pro Max(鋁合金 MetalGlaze™-橘色)$800","r":800,"rmb":98,"tw":113,"b":"4710007839034"},{"k":"iPhone 17","n":"imos藍寶石鏡頭貼for iPhone 17 Pro/Pro Max(不鏽鋼-燒鈦色)$800","r":800,"rmb":98,"tw":113,"b":"4710007839041"},{"k":"iPhone 17","n":"imos藍寶石鏡頭貼for iPhone 17 Pro/Pro Max(不鏽鋼-18K金色)$1000","r":1000,"rmb":118,"tw":133,"b":"4710007839058"},{"k":"iPhone Air","n":"(2.5D黑邊)imos AGbC康寧授權玻璃貼for iPhone Air $1090","r":1090,"rmb":124,"tw":139,"b":"4710007839584"},{"k":"iPhone Air","n":"(2.5D黑邊)imos AR低反光玻璃貼for iPhone Air $1390","r":1390,"rmb":152,"tw":167,"b":"4710007839867"},{"k":"iPhone Air","n":"(2.5D黑邊)imos AR低反光低藍光CPF60玻璃貼for iPhone Air $1490","r":1490,"rmb":152,"tw":167,"b":"4710007839829"},{"k":"iPhone Air","n":"(2.5D黑邊-防窺)imos RPF60低藍光玻璃貼for iPhone Air $1390","r":1390,"rmb":152,"tw":167,"b":"4710007829782"},{"k":"iPhone Air","n":"(2.5D黑邊-霧面)imos RPF80低藍光玻璃貼for iPhone Air $1390","r":1390,"rmb":152,"tw":167,"b":"4710007839294"},{"k":"iPhone Air","n":"(2.5D黑邊-亮面)imos RPF80低藍光玻璃貼for iPhone Air $1390","r":1390,"rmb":152,"tw":167,"b":"4710007839669"},{"k":"iPhone Air","n":"(3D黑邊-亮面)imos RPF80低藍光玻璃貼for iPhone Air $1490","r":1490,"rmb":161,"tw":176,"b":"4710007839706"},{"k":"iPhone Air","n":"imos黑色軍規殼for iPhone Air$890","r":890,"rmb":103,"tw":118,"b":"4710007838464"},{"k":"iPhone Air","n":"imos透明軍規殼for iPhone Air$890","r":890,"rmb":103,"tw":118,"b":"4710007838426"},{"k":"iPhone Air","n":"imos黑色磁吸軍規殼for iPhone Air$1090","r":1090,"rmb":133,"tw":148,"b":"4710007838549"},{"k":"iPhone Air","n":"(售完為止)imos藍色磁吸軍規殼for iPhone Air$1090","r":1090,"rmb":133,"tw":148,"b":"4710007838624"},{"k":"iPhone Air","n":"(售完為止)imos紫色磁吸軍規殼for iPhone Air$1090","r":1090,"rmb":133,"tw":148,"b":"4710007838662"},{"k":"iPhone Air","n":"(售完為止)imos綠色磁吸軍規殼for iPhone Air$1090","r":1090,"rmb":133,"tw":148,"b":"4710007838587"},{"k":"iPhone Air","n":"imos透明磁吸軍規殼for iPhone Air$1090","r":1090,"rmb":133,"tw":148,"b":"4710007838501"},{"k":"iPhone Air","n":"imos黑色磁吸支架軍規殼for iPhone Air$1290","r":1290,"rmb":148,"tw":163,"b":"4710007838747"},{"k":"iPhone Air","n":"(售完為止)imos藍色磁吸支架軍規殼for iPhone Air$1290","r":1290,"rmb":148,"tw":163,"b":"4710007838822"},{"k":"iPhone Air","n":"(售完為止)imos綠色磁吸支架軍規殼for iPhone Air$1290","r":1290,"rmb":148,"tw":163,"b":"4710007838785"},{"k":"iPhone Air","n":"(售完為止)imos紫色磁吸支架軍規殼for iPhone Air$1290","r":1290,"rmb":148,"tw":163,"b":"4710007838860"},{"k":"iPhone Air","n":"imos透明磁吸支架軍規殼for iPhone Air$1290","r":1290,"rmb":148,"tw":163,"b":"4710007838709"},{"k":"iPhone Air","n":"imos藍寶石鏡頭貼for iPhone Air(鈦合金-黑色)$450","r":450,"rmb":58,"tw":73,"b":"4710007838952"},{"k":"iPhone Air","n":"imos藍寶石鏡頭貼for iPhone Air(鈦合金-銀色)$450","r":450,"rmb":58,"tw":73,"b":"4710007838969"},{"k":"iPhone Air","n":"imos藍寶石鏡頭貼for iPhone Air(鈦合金-藍色)$450","r":450,"rmb":58,"tw":73,"b":"4710007838976"},{"k":"iPhone Air","n":"imos藍寶石鏡頭貼for iPhone Air(鈦合金-金色)$450","r":450,"rmb":58,"tw":73,"b":"4710007838983"},{"k":"iPhone Air","n":"imos藍寶石鏡頭貼for iPhone Air(不鏽鋼-燒鈦色)$350","r":350,"rmb":48,"tw":63,"b":"4710007838990"},{"k":"iPhone 16","n":"(2.5D高透黑邊)imos EX2 低藍光 RPF60+GRS驗證 for APPLE iPhone 16 / i15 / i14 Pro (6.1吋) $1390","r":1390,"rmb":152.1,"tw":167.1,"b":"4710007836286"},{"k":"iPhone 16","n":"(2.5D高透黑邊)imos EX2 低藍光 RPF60+GRS驗證 for APPLE iPhone 16 Plus / i15 Plus / i14 Pro Max (6.7吋) $1390現貨可出，另開立)","r":1390,"rmb":152.1,"tw":167.1,"b":"4710007836279"},{"k":"iPhone 16","n":"(2.5D高透黑邊)imos EX2 低藍光 RPF60+GRS驗證 for APPLE iPhone 16 Pro $1390(現貨可出，另開立)","r":1390,"rmb":152.1,"tw":167.1,"b":"4710007836255"},{"k":"iPhone 16","n":"(2.5D高透黑邊)imos EX2 低藍光 RPF60+GRS驗證 for APPLE iPhone 16 ProMax $1390(現貨可出，另開立)","r":1390,"rmb":152.1,"tw":167.1,"b":"4710007836262"},{"k":"iPhone 16","n":"(2.5D霧面)imos EX2 低藍光 RPF60 for APPLE iPhone 16 / i15 / i14 Pro (6.1吋) (霧面)$1390","r":1390,"rmb":152.1,"tw":167.1,"b":"4710007836286"},{"k":"iPhone 16","n":"(2.5D霧面)imos EX2 低藍光 RPF60 for APPLE iPhone 16 Plus / i15 Plus / i14 Pro Max (6.7吋)(霧面) $1390","r":1390,"rmb":152.1,"tw":167.1,"b":"4710007836279"},{"k":"iPhone 16","n":"(2.5D霧面)imos EX2 低藍光 RPF60 for APPLE iPhone 16 ProMax(霧面) $1390(現貨可出，另開立)","r":1390,"rmb":152.1,"tw":167.1,"b":"4710007836262"},{"k":"iPhone 16","n":"(2.5D防窺)imos EX2 低藍光 RPF60+美國UL驗證 for APPLE iPhone 16 / i15 / i14 Pro (6.1吋) (防窺)$1390(現貨可出，另開立)","r":1390,"rmb":152.1,"tw":167.1,"b":"4710007836286"},{"k":"iPhone 16","n":"(2.5D防窺)imos EX2 低藍光 RPF60+美國UL驗證 for APPLE iPhone 16 Plus / i15 Plus / i14 Pro Max (6.7吋)(防窺) $1390(現貨可出，另開立)","r":1390,"rmb":152.1,"tw":167.1,"b":"4710007836279"},{"k":"iPhone 16","n":"(2.5D霧面)imos EX2 低藍光 RPF60 for APPLE iPhone 16 Pro (霧面)$1390(現貨可出，另開立)","r":1390,"rmb":152.1,"tw":167.1,"b":"4710007836255"},{"k":"iPhone 16","n":"[3D EX2黑邊]imos EX2 低藍光 RPF60+GRS驗證 for APPLE iPhone 16 Pro $1490(現貨可出，另開立)","r":1490,"rmb":152.1,"tw":167.1,"b":"4710007836255"},{"k":"iPhone 16","n":"[3D EX2黑邊]imos EX2 低藍光 RPF60+GRS驗證 for APPLE iPhone 16 Pro Max $1490(現貨可出，另開立)","r":1490,"rmb":152.1,"tw":167.1,"b":"4710007836262"},{"k":"iPhone 16","n":"[3D EX2霧面]imos EX2 低藍光 RPF60+GRS驗證 for APPLE iPhone 16 Pro$1490(現貨可出，另開立)","r":1490,"rmb":152.1,"tw":167.1,"b":"4710007836255"},{"k":"iPhone 16","n":"[3D EX2霧面]imos EX2 低藍光 RPF60+GRS驗證 for APPLE iPhone 16 Pro Max $1490(現貨可出，另開立)","r":1490,"rmb":152.1,"tw":167.1,"b":"4710007836262"},{"k":"iPhone 16","n":"[3D EX2霧面全透明]imos EX2 低藍光 RPF60+GRS驗證 for APPLE iPhone 16 Pro $1490(現貨可出，另開立)","r":1490,"rmb":152.1,"tw":167.1,"b":"4710007836255"},{"k":"iPhone 16","n":"[3D EX2霧面全透明]imos EX2 低藍光 RPF60+GRS驗證 for APPLE iPhone 16 Pro Max $1490(現貨可出，另開立)","r":1490,"rmb":152.1,"tw":167.1,"b":"4710007836262"},{"k":"iPhone 16","n":"[3D EX2防窺黑邊]imos EX2 低藍光 RPF60+美國UL驗證 for APPLE iPhone 16 Pro $1490(現貨可出，另開立)","r":1490,"rmb":152.1,"tw":167.1,"b":"4710007836255"},{"k":"iPhone 16","n":"[3D EX2防窺黑邊]imos EX2 低藍光 RPF60+美國UL驗證 for APPLE iPhone 16 Pro Max $1490(現貨可出，另開立)","r":1490,"rmb":152.1,"tw":167.1,"b":"4710007836262"},{"k":"iPhone 16","n":"(售完為止)[3D EX2全透明]imos EX2 低藍光 RPF60+GRS驗證 for APPLE iPhone 16 Pro $1490(現貨可出，另開立)","r":1490,"rmb":152.1,"tw":167.1,"b":"4710007836255"},{"k":"iPhone 16","n":"(售完為止)[3D EX2全透明]imos EX2 低藍光 RPF60+GRS驗證 for APPLE iPhone 16 Pro Max $1490","r":1490,"rmb":152.1,"tw":167.1,"b":"4710007836262"},{"k":"iPhone 16","n":"(2.5D高透)超細黑邊康寧玻璃貼for iPhone 16(2024)/ i15 / i14 Pro (6.1吋)$1090","r":1090,"rmb":115.24,"tw":130.24,"b":"4710007834848"},{"k":"iPhone 16","n":"(2.5D高透)超細黑邊康寧玻璃貼for iPhone 16 Plus(2024) i15 Plus / i14 Pro Max (6.7吋)$1090","r":1090,"rmb":123.84,"tw":138.84,"b":"4710007834855"},{"k":"iPhone 16","n":"(2.5D防窺)超細黑邊強化玻璃貼for iPhone 16 /15/14 Pro$1090","r":1090,"rmb":115.24,"tw":130.24,"b":"4710007834923"},{"k":"iPhone 16","n":"(2.5D防窺)超細黑邊強化玻璃貼for iPhone 16 Plus/15 Plus/14 ProMax$1090","r":1090,"rmb":115.24,"tw":130.24,"b":"4710007834930"},{"k":"iPhone 16","n":"(2.5D防窺)超細黑邊強化玻璃貼for iPhone 16 Pro$1090","r":1090,"rmb":115.24,"tw":130.24,"b":"4710007834923"},{"k":"iPhone 16","n":"(2.5D防窺)超細黑邊強化玻璃貼for iPhone 16 ProMax$1090(預購中)","r":1090,"rmb":115.24,"tw":130.24,"b":"4710007834930"},{"k":"iPhone 16","n":"(2.5D霧面)超細黑邊強化玻璃貼for iPhone 16 /15/14 Pro$1090","r":1090,"rmb":115.24,"tw":130.24,"b":"4710007834886"},{"k":"iPhone 16","n":"(2.5D霧面)超細黑邊強化玻璃貼for iPhone 16 Plus/15 Plus/14 ProMax$1090","r":1090,"rmb":115.24,"tw":130.24,"b":"4710007834893"},{"k":"iPhone 16","n":"(2.5D霧面)超細黑邊強化玻璃貼for iPhone 16 Pro$1090","r":1090,"rmb":115.24,"tw":130.24,"b":"4710007834886"},{"k":"iPhone 16","n":"(2.5D霧面)超細黑邊強化玻璃貼for iPhone 16 ProMax$1090(預購中)","r":1090,"rmb":115.24,"tw":130.24,"b":"4710007834893"},{"k":"iPhone 16","n":"(售完為止)(滿版黑邊) 9M 人造藍寶石(RPF60)螢幕貼 for iPhone 16/15/14 Pro $1699(現貨可出，另開立)","r":1699,"rmb":219,"tw":234,"b":"4710007837528"},{"k":"iPhone 16","n":"(滿版黑邊) 9M 人造藍寶石(RPF60)螢幕貼 for iPhone 16+/15+/14 ProMax $1699(現貨可出，另開立)","r":1699,"rmb":219,"tw":234,"b":"4710007837511"},{"k":"iPhone 16","n":"(售完為止)(滿版黑邊) 9M 人造藍寶石螢幕貼 for iPhone 16+/15+/14 ProMax (6.7\")$1699","r":1699,"rmb":219.45,"tw":234.45,"b":"4710007835104"},{"k":"iPhone 16","n":"APPLE iPhone 16 Pro(6.3\")(2024) 正面$600","r":600,"rmb":38.4,"tw":53.4,"b":"4710007835166"},{"k":"iPhone 16","n":"APPLE iPhone 16 Pro Max(6.9\")(2024) 正面$600","r":600,"rmb":38.4,"tw":53.4,"b":"4710007835173"},{"k":"iPhone 16","n":"[imos Case]耐衝擊軍規保護殼for iPhone 16 (潮流黑)$890","r":890,"rmb":114,"tw":129,"b":"4710007835708"},{"k":"iPhone 16","n":"[imos Case]耐衝擊軍規保護殼for iPhone 16 Plus (潮流黑)$890","r":890,"rmb":114,"tw":129,"b":"4710007835715"},{"k":"iPhone 16","n":"[imos Case]耐衝擊軍規保護殼for iPhone 16 Pro (潮流黑)$890","r":890,"rmb":114,"tw":129,"b":"4710007835722"},{"k":"iPhone 16","n":"[imos Case]耐衝擊軍規保護殼for iPhone 16 ProMax (潮流黑)$890","r":890,"rmb":114,"tw":129,"b":"4710007835739"},{"k":"iPhone 16","n":"[imos Case]耐衝擊軍規保護殼for iPhone 16 (藍莓色(藍))$890","r":890,"rmb":114,"tw":129,"b":"4710007835746"},{"k":"iPhone 16","n":"[imos Case]耐衝擊軍規保護殼for iPhone 16 Plus (藍莓色(藍))$890","r":890,"rmb":114,"tw":129,"b":"4710007835753"},{"k":"iPhone 16","n":"[imos Case]耐衝擊軍規保護殼for iPhone 16 Pro (藍莓色(藍))$890","r":890,"rmb":114,"tw":129,"b":"4710007835760"},{"k":"iPhone 16","n":"[imos Case]耐衝擊軍規保護殼for iPhone 16 ProMax (藍莓色(藍))$890","r":890,"rmb":114,"tw":129,"b":"4710007835777"},{"k":"iPhone 16","n":"[imos Case]耐衝擊軍規保護殼for iPhone 16 (丁香紫色(紫))$890","r":890,"rmb":114,"tw":129,"b":"4710007835821"},{"k":"iPhone 16","n":"[imos Case]耐衝擊軍規保護殼for iPhone 16 Plus (丁香紫色(紫))$890","r":890,"rmb":114,"tw":129,"b":"4710007835838"},{"k":"iPhone 16","n":"[imos Case]耐衝擊軍規保護殼for iPhone 16 Pro (丁香紫色(紫))$890","r":890,"rmb":114,"tw":129,"b":"4710007835845"},{"k":"iPhone 16","n":"[imos Case]耐衝擊軍規保護殼for iPhone 16 ProMax (丁香紫色(紫))$890","r":890,"rmb":114,"tw":129,"b":"4710007835852"},{"k":"iPhone 16","n":"[imos Case]耐衝擊軍規保護殼for iPhone 16 (亞麻綠色(綠))$890","r":890,"rmb":114,"tw":129,"b":"4710007835784"},{"k":"iPhone 16","n":"[imos Case]耐衝擊軍規保護殼for iPhone 16 Plus (亞麻綠色(綠))$890","r":890,"rmb":114,"tw":129,"b":"4714000835791"},{"k":"iPhone 16","n":"[imos Case]耐衝擊軍規保護殼for iPhone 16 Pro (亞麻綠色(綠))$890","r":890,"rmb":114,"tw":129,"b":"4710007835807"},{"k":"iPhone 16","n":"[imos Case]耐衝擊軍規保護殼for iPhone 16 ProMax (亞麻綠色(綠))$890","r":890,"rmb":114,"tw":129,"b":"4710007835814"},{"k":"iPhone 16","n":"[imos Case]耐衝擊軍規保護殼for iPhone 16 (透明)$790","r":790,"rmb":104,"tw":119,"b":"4710007835869"},{"k":"iPhone 16","n":"[imos Case]耐衝擊軍規保護殼for iPhone 16 Plus (透明)$790","r":790,"rmb":104,"tw":119,"b":"4710007835876"},{"k":"iPhone 16","n":"[imos Case]耐衝擊軍規保護殼for iPhone 16 Pro (透明)$790","r":790,"rmb":104,"tw":119,"b":"4710007835883"},{"k":"iPhone 16","n":"[imos Case]耐衝擊軍規保護殼for iPhone 16 ProMax (透明)$790","r":790,"rmb":104,"tw":119,"b":"4710007835890"},{"k":"iPhone 16","n":"[imos Case](磁吸款)耐衝擊軍規保護殼for iPhone 16 (磁吸款)(潮流黑)$990","r":990,"rmb":108,"tw":123,"b":"4710007838310"},{"k":"iPhone 16","n":"[imos Case](磁吸款)耐衝擊軍規保護殼for iPhone 16 Plus (磁吸款)(潮流黑)$990","r":990,"rmb":108,"tw":123,"b":"4710007838310"},{"k":"iPhone 16","n":"[imos Case](磁吸款)耐衝擊軍規保護殼for iPhone 16 Pro (磁吸款)(潮流黑)$990","r":990,"rmb":108,"tw":123,"b":"4710007838310"},{"k":"iPhone 16","n":"[imos Case](磁吸款)耐衝擊軍規保護殼for iPhone 16 Pro Max (磁吸款)(潮流黑)$990","r":990,"rmb":114,"tw":129,"b":"4710007835739"},{"k":"iPhone 16","n":"[imos Case](磁吸款)耐衝擊軍規保護殼for iPhone 16 (磁吸款)(藍莓色)$990","r":990,"rmb":108,"tw":123,"b":"4710007838242"},{"k":"iPhone 16","n":"[imos Case](磁吸款)耐衝擊軍規保護殼for iPhone 16 Plus (磁吸款)(藍莓色)$990","r":990,"rmb":108,"tw":123,"b":"4710007838242"},{"k":"iPhone 16","n":"[imos Case](磁吸款)耐衝擊軍規保護殼for iPhone 16 Pro (磁吸款)(藍莓色)$990","r":990,"rmb":108,"tw":123,"b":"4710007838242"},{"k":"iPhone 16","n":"[imos Case](磁吸款)耐衝擊軍規保護殼for iPhone 16 Pro Max (磁吸款)(藍莓色)$990","r":990,"rmb":114,"tw":129,"b":"4710007835777"},{"k":"iPhone 16","n":"[imos Case](磁吸款)耐衝擊軍規保護殼for iPhone 16 (磁吸款)(丁香紫色)$990","r":990,"rmb":108,"tw":123,"b":"4710007838242"},{"k":"iPhone 16","n":"[imos Case](磁吸款)耐衝擊軍規保護殼for iPhone 16 Plus (磁吸款)(丁香紫色)$990","r":990,"rmb":114,"tw":129,"b":"4710007835838"},{"k":"iPhone 16","n":"[imos Case](磁吸款)耐衝擊軍規保護殼for iPhone 16 Pro (磁吸款)(丁香紫色)$990","r":990,"rmb":108,"tw":123,"b":"4710007838242"},{"k":"iPhone 16","n":"[imos Case](磁吸款)耐衝擊軍規保護殼for iPhone 16 Pro Max (磁吸款)(丁香紫色)$990","r":990,"rmb":114,"tw":129,"b":"4710007835852"},{"k":"iPhone 16","n":"[imos Case](磁吸款)耐衝擊軍規保護殼for iPhone 16 (磁吸款)(亞麻綠色)$990","r":990,"rmb":108,"tw":123,"b":"4710007838242"},{"k":"iPhone 16","n":"[imos Case](磁吸款)耐衝擊軍規保護殼for iPhone 16 Plus (磁吸款)(亞麻綠色)$990","r":990,"rmb":114,"tw":129,"b":"4714000835791"},{"k":"iPhone 16","n":"[imos Case](磁吸款)耐衝擊軍規保護殼for iPhone 16 Pro (磁吸款)(亞麻綠色)$990","r":990,"rmb":108,"tw":123,"b":"4710007838242"},{"k":"iPhone 16","n":"[imos Case](磁吸款)耐衝擊軍規保護殼for iPhone 16 Pro Max (磁吸款)(亞麻綠色)$990","r":990,"rmb":114,"tw":129,"b":"4710007835814"},{"k":"iPhone 16","n":"[imos Case](磁吸款)耐衝擊軍規保護殼for iPhone 16 (磁吸款)(透明)$890","r":890,"rmb":108,"tw":123,"b":"4710007838242"},{"k":"iPhone 16","n":"[imos Case](磁吸款)耐衝擊軍規保護殼for iPhone 16 Plus (磁吸款)(透明)$890","r":890,"rmb":108,"tw":123,"b":"4710007838242"},{"k":"iPhone 16","n":"[imos Case](磁吸款)耐衝擊軍規保護殼for iPhone 16 Pro (磁吸款)(透明)$890(預購中)","r":890,"rmb":108,"tw":123,"b":"4710007838242"},{"k":"iPhone 16","n":"[imos Case](磁吸款)耐衝擊軍規保護殼for iPhone 16 Pro Max (磁吸款)(透明)$890","r":890,"rmb":108,"tw":123,"b":"4710007838242"},{"k":"iPhone 16","n":"[imos Case](磁吸支架款)耐衝擊軍規保護殼for iPhone 16 (磁吸支架款)(潮流黑)$1290","r":1290,"rmb":108,"tw":123,"b":"4710007838310"},{"k":"iPhone 16","n":"[imos Case](磁吸支架款)耐衝擊軍規保護殼for iPhone 16 Plus (磁吸支架款)(潮流黑)$1290","r":1290,"rmb":144,"tw":159,"b":"4710007834626"},{"k":"iPhone 16","n":"[imos Case](磁吸支架款)耐衝擊軍規保護殼for iPhone 16 Pro (磁吸支架款)(潮流黑)$1290","r":1290,"rmb":108,"tw":123,"b":"4710007838310"},{"k":"iPhone 16","n":"[imos Case](磁吸支架款)耐衝擊軍規保護殼for iPhone 16 Pro Max (磁吸支架款)(潮流黑)$1290(預購中)","r":1290,"rmb":144,"tw":159,"b":"4710007834640"},{"k":"iPhone 16","n":"[imos Case](磁吸支架款)耐衝擊軍規保護殼for iPhone 16 (磁吸支架款)(藍莓色)$1290","r":1290,"rmb":108,"tw":123,"b":"4710007838242"},{"k":"iPhone 16","n":"[imos Case](磁吸支架款)耐衝擊軍規保護殼for iPhone 16 Plus (磁吸支架款)(藍莓色)$1290","r":1290,"rmb":144,"tw":159,"b":"4710007835647"},{"k":"iPhone 16","n":"[imos Case](磁吸支架款)耐衝擊軍規保護殼for iPhone 16 Pro (磁吸支架款)(藍莓色)$1290","r":1290,"rmb":144,"tw":159,"b":"4710007835654"},{"k":"iPhone 16","n":"[imos Case](磁吸支架款)耐衝擊軍規保護殼for iPhone 16 Pro Max (磁吸支架款)(藍莓色)$1290","r":1290,"rmb":144,"tw":159,"b":"4710007834664"},{"k":"iPhone 16","n":"[imos Case](磁吸支架款)耐衝擊軍規保護殼for iPhone 16 (磁吸支架款)(丁香紫色)$1290","r":1290,"rmb":108,"tw":123,"b":"4710007838242"},{"k":"iPhone 16","n":"[imos Case](磁吸支架款)耐衝擊軍規保護殼for iPhone 16 Plus (磁吸支架款)(丁香紫色)$1290","r":1290,"rmb":144,"tw":159,"b":"4710007835678"},{"k":"iPhone 16","n":"[imos Case](磁吸支架款)耐衝擊軍規保護殼for iPhone 16 Pro (磁吸支架款)(丁香紫色)$1290","r":1290,"rmb":144,"tw":159,"b":"4710007835685"},{"k":"iPhone 16","n":"[imos Case](磁吸支架款)耐衝擊軍規保護殼for iPhone 16 Pro Max (磁吸支架款)(丁香紫色)$1290","r":1290,"rmb":144,"tw":159,"b":"4710007835692"},{"k":"iPhone 16","n":"[imos Case](磁吸支架款)耐衝擊軍規保護殼for iPhone 16 (磁吸支架款)(亞麻綠色)$1290","r":1290,"rmb":108,"tw":123,"b":"4710007838242"},{"k":"iPhone 16","n":"[imos Case](磁吸支架款)耐衝擊軍規保護殼for iPhone 16 Plus (磁吸支架款)(亞麻綠色)$1290","r":1290,"rmb":144,"tw":159,"b":"4710007835562"},{"k":"iPhone 16","n":"[imos Case](磁吸支架款)耐衝擊軍規保護殼for iPhone 16 Pro (磁吸支架款)(亞麻綠色)$1290","r":1290,"rmb":144,"tw":159,"b":"4710007835579"},{"k":"iPhone 16","n":"[imos Case](磁吸支架款)耐衝擊軍規保護殼for iPhone 16 Pro Max (磁吸支架款)(亞麻綠色)$1290","r":1290,"rmb":144,"tw":159,"b":"4710007835586"},{"k":"iPhone 16","n":"[imos Case](磁吸支架款)耐衝擊軍規保護殼for iPhone 16 (磁吸支架款)(透明)$1190","r":1190,"rmb":108,"tw":123,"b":"4710007838242"},{"k":"iPhone 16","n":"[imos Case](磁吸支架款)耐衝擊軍規保護殼for iPhone 16 Plus (磁吸支架款)(透明)$1190","r":1190,"rmb":108,"tw":123,"b":"4710007838242"},{"k":"iPhone 16","n":"[imos Case](磁吸支架款)耐衝擊軍規保護殼for iPhone 16 Pro (磁吸支架款)(透明)$1190(預購中)","r":1190,"rmb":108,"tw":123,"b":"4710007838242"},{"k":"iPhone 16","n":"[imos Case](磁吸支架款)耐衝擊軍規保護殼for iPhone 16 Pro Max (磁吸支架款)(透明)$1190(預購中)","r":1190,"rmb":134,"tw":149,"b":"4710007835623"},{"k":"iPhone 16","n":"[imos Case](磁吸款)耐衝擊軍規保護殼for iPhone 16e (磁吸款)(透黑)$890","r":890,"rmb":108,"tw":123,"b":"4710007838310"},{"k":"iPhone 16","n":"[imos Case](磁吸款)耐衝擊軍規保護殼for iPhone 16e (磁吸款)(透明)$890","r":890,"rmb":108,"tw":123,"b":"4710007838242"},{"k":"iPhone 16","n":"[imos Case](磁吸相機按鍵款)耐衝擊軍規保護殼for iPhone 16(磁吸相機按鍵款)(透明)$990","r":990,"rmb":118,"tw":133,"b":"4710007838365"},{"k":"iPhone 16","n":"[imos Case](磁吸相機按鍵款)耐衝擊軍規保護殼for iPhone 16 Plus(磁吸相機按鍵款)(透明)$990","r":990,"rmb":118,"tw":133,"b":"4710007838365"},{"k":"iPhone 16","n":"[imos Case](磁吸相機按鍵款)耐衝擊軍規保護殼for iPhone 16 Pro(磁吸相機按鍵款)(透明)$990","r":990,"rmb":118,"tw":133,"b":"4710007838365"},{"k":"iPhone 16","n":"[imos Case](磁吸相機按鍵款)耐衝擊軍規保護殼for iPhone 16 ProMax(磁吸相機按鍵款)(透明)$990","r":990,"rmb":118,"tw":133,"b":"4710007838365"},{"k":"iPhone 16","n":"藍寶石鏡頭貼 for iPhone 16/16 Plus (鋁合金-黑)兩顆$550","r":550,"rmb":71.04,"tw":86.04,"b":"4710007833438"},{"k":"iPhone 16","n":"藍寶石鏡頭貼 for iPhone 16/16 Plus (鋁合金-粉)兩顆$550","r":550,"rmb":71.04,"tw":86.04,"b":"4710007834237"},{"k":"iPhone 16","n":"藍寶石鏡頭貼 for iPhone 16/16 Plus (鋁合金-銀)兩顆$550","r":550,"rmb":71.04,"tw":86.04,"b":"4710007834237"},{"k":"iPhone 16","n":"藍寶石鏡頭貼 for iPhone 16/16 Plus (鋁合金-綠)兩顆$550","r":550,"rmb":71.04,"tw":86.04,"b":"4710007834237"},{"k":"iPhone 16","n":"藍寶石鏡頭貼 for iPhone 16/16 Plus (鋁合金-藍)兩顆$550","r":550,"rmb":71.04,"tw":86.04,"b":"4710007833445"},{"k":"iPhone 16","n":"藍寶石鏡頭貼(PVDSS不鏽鋼系列) for iPhone 16/16 Plus(燒鈦色)兩顆$600","r":600,"rmb":75.84,"tw":90.84,"b":"4710007833483"},{"k":"iPhone 16","n":"藍寶石鏡頭貼(PVDSS不鏽鋼2.0) for iPhone 16 Pro/16 ProMax(鈦黑色)三顆$800","r":800,"rmb":94,"tw":109,"b":"4710007834770"},{"k":"iPhone 16","n":"藍寶石鏡頭貼(PVDSS不鏽鋼2.0) for iPhone 16 Pro/16 ProMax(鈦銀色)三顆$800","r":800,"rmb":94,"tw":109,"b":"4710007834787"},{"k":"iPhone 16","n":"藍寶石鏡頭貼(PVDSS不鏽鋼2.0) for iPhone 16 Pro/16 ProMax(鈦金色)三顆$800","r":800,"rmb":94,"tw":109,"b":"4710007834770"},{"k":"iPhone 16","n":"藍寶石鏡頭貼(PVDSS不鏽鋼2.0) for iPhone 16 Pro/16 ProMax(燒鈦色)三顆$800","r":800,"rmb":94,"tw":109,"b":"4710007834817"},{"k":"iPhone 16","n":"藍寶石鏡頭貼(鈦合金Ti64) for iPhone 16 Pro/16 ProMax(原色鈦)三顆$950","r":950,"rmb":114,"tw":129,"b":"4710007835210"},{"k":"iPhone 16","n":"藍寶石鏡頭貼(PVDSS不鏽鋼系列) for iPhone 16 Pro/16 ProMax-(18K金色)三顆$950","r":950,"rmb":109.44,"tw":124.44,"b":"4710007834015"},{"k":"iPhone 16","n":"藍寶石鏡頭保護鏡for iPhone 16e(銀)$290","r":290,"rmb":71.04,"tw":86.04,"b":"4710007832561"},{"k":"iPhone 16","n":"藍寶石鏡頭保護鏡for iPhone 16e(黑)$290","r":290,"rmb":71.04,"tw":86.04,"b":"4710007832554"},{"k":"iPhone 15","n":"(2.5D高透黑邊)imos EX2 低藍光 RPF60+GRS驗證 for APPLE iPhone 15 Pro (6.1吋) $1390(預購中)","r":1390,"rmb":152.1,"tw":167.1,"b":"4710007836255"},{"k":"iPhone 15","n":"(2.5D高透黑邊)imos EX2 低藍光 RPF60+GRS驗證 for APPLE iPhone 15 Pro Max (6.7吋) $1390","r":1390,"rmb":152.1,"tw":167.1,"b":"4710007836262"},{"k":"iPhone 15","n":"(2.5D霧面)imos EX2 低藍光 RPF60 for APPLE iPhone 15 Pro (6.1吋) (霧面)$1390(現貨供應，另開立)","r":1390,"rmb":152.1,"tw":167.1,"b":"4710007836255"},{"k":"iPhone 15","n":"(2.5D霧面)imos EX2 低藍光 RPF60 for APPLE iPhone 15 Pro Max (6.7吋)(霧面) $1390","r":1390,"rmb":152.1,"tw":167.1,"b":"4710007836262"},{"k":"iPhone 15","n":"(2.5D防窺)imos EX2 低藍光 RPF60+美國UL驗證 for APPLE iPhone 15 Pro (6.1吋) (防窺)$1390(現貨可出，另開立)","r":1390,"rmb":152.1,"tw":167.1,"b":"4710007836255"},{"k":"iPhone 15","n":"(2.5D防窺)imos EX2 低藍光 RPF60+美國UL驗證 for APPLE iPhone 15 Pro Max (6.7吋)(防窺) $1390(現貨可出，另開立)","r":1390,"rmb":152.1,"tw":167.1,"b":"4710007836262"},{"k":"iPhone 15","n":"(3D高透)超細黑邊康寧玻璃貼for iPhone 15 Pro(6.1吋)(2023)$1290","r":1290,"rmb":132.44,"tw":147.44,"b":"4710007834398"},{"k":"iPhone 15","n":"(3D高透)超細黑邊康寧玻璃貼for iPhone 15 ProMax(6.7吋)(2023)$1290","r":1290,"rmb":132.44,"tw":147.44,"b":"4710007834404"},{"k":"iPhone 15","n":"(3D霧面)超細黑邊強化玻璃貼for iPhone 15 Pro(6.1吋)(2023)$1090","r":1090,"rmb":115.24,"tw":130.24,"b":"4710007834473"},{"k":"iPhone 15","n":"(售完為止)(3D霧面)超細黑邊強化玻璃貼for iPhone 15 ProMax(6.7吋)(2023)$1090","r":1090,"rmb":115.24,"tw":130.24,"b":"4710007834480"},{"k":"iPhone 15","n":"(3D防窺)超細黑邊強化玻璃貼for iPhone 15 Pro(6.1吋)(2023)$1090","r":1090,"rmb":115.24,"tw":130.24,"b":"4710007834510"},{"k":"iPhone 15","n":"(3D防窺)超細黑邊強化玻璃貼for iPhone 15 ProMax(6.7吋)(2023)$1090","r":1090,"rmb":115.24,"tw":130.24,"b":"4710007834527"},{"k":"iPhone 15","n":"(2.5D點膠高透)超細黑邊康寧玻璃貼for iPhone 15  Plus(6.7吋)(2023)$1090","r":1090,"rmb":123.84,"tw":138.84,"b":"4710007834367"},{"k":"iPhone 15","n":"(2.5D點膠高透)超細黑邊康寧玻璃貼for iPhone 15 Pro(6.1吋)(2023)$1090","r":1090,"rmb":115.24,"tw":130.24,"b":"4710007834848"},{"k":"iPhone 15","n":"(2.5D點膠高透)超細黑邊康寧玻璃貼for iPhone 15 ProMax(6.7吋)(2023)$1090","r":1090,"rmb":123.84,"tw":138.84,"b":"4710007834855"},{"k":"iPhone 15","n":"(2.5D點膠霧面)超細黑邊強化玻璃貼for iPhone 15 (6.1吋)(2023)$1090","r":1090,"rmb":115.24,"tw":130.24,"b":"4710007834862"},{"k":"iPhone 15","n":"(2.5D點膠霧面)超細黑邊強化玻璃貼for iPhone 15 Plus(6.7吋)(2023)$1090","r":1090,"rmb":115.24,"tw":130.24,"b":"4710007834879"},{"k":"iPhone 15","n":"(2.5D點膠霧面)超細黑邊強化玻璃貼for iPhone 15 Pro(6.1吋)(2023)$1090","r":1090,"rmb":115.24,"tw":130.24,"b":"4710007834886"},{"k":"iPhone 15","n":"(2.5D點膠霧面)超細黑邊強化玻璃貼for iPhone 15 ProMax(6.7吋)(2023)$1090","r":1090,"rmb":115.24,"tw":130.24,"b":"4710007834893"},{"k":"iPhone 15","n":"(2.5D點膠防窺)超細黑邊強化玻璃貼for iPhone 15 (6.1吋)(2023)$1090","r":1090,"rmb":115.24,"tw":130.24,"b":"4710007834909"},{"k":"iPhone 15","n":"(2.5D點膠防窺)超細黑邊強化玻璃貼for iPhone 15 Plus(6.7吋)(2023)$1090","r":1090,"rmb":115.24,"tw":130.24,"b":"4710007834916"},{"k":"iPhone 15","n":"(2.5D點膠防窺)超細黑邊強化玻璃貼for iPhone 15 Pro(6.1吋)(2023)$1090","r":1090,"rmb":115.24,"tw":130.24,"b":"4710007834923"},{"k":"iPhone 15","n":"(2.5D點膠防窺)超細黑邊強化玻璃貼for iPhone 15 ProMax(6.7吋)(2023)$1090","r":1090,"rmb":115.24,"tw":130.24,"b":"4710007834930"},{"k":"iPhone 15","n":"(售完為止)(滿版黑邊) 9M 人造藍寶石(RPF60)螢幕貼 for iPhone 15 Pro $1699(現貨可出，另開立)","r":1699,"rmb":219,"tw":234,"b":"4710007837528"},{"k":"iPhone 15","n":"(售完為止)(滿版黑邊) 9M 人造藍寶石螢幕貼 for iPhone 15 (6.1\")$1699","r":1699,"rmb":219.45,"tw":234.45,"b":"4710007835074"},{"k":"iPhone 15","n":"(售完為止)(滿版黑邊) 9M 人造藍寶石螢幕貼 for iPhone 15 Pro(6.1吋)$1699","r":1699,"rmb":219.45,"tw":234.45,"b":"4710007835098"},{"k":"iPhone 15","n":"(滿版黑邊) 9M 人造藍寶石螢幕貼 for iPhone 15 Pro Max(6.7吋)$1699","r":1699,"rmb":219.45,"tw":234.45,"b":"4710007835104"},{"k":"iPhone 15","n":"APPLE iPhone 15/15 Pro(6.1\")(2023) 正面$600","r":600,"rmb":38.4,"tw":53.4,"b":"4710007835166"},{"k":"iPhone 15","n":"APPLE iPhone 15 Plus/15 ProMax(6.7\")(2023) 正面$600","r":600,"rmb":38.4,"tw":53.4,"b":"4710007835173"},{"k":"iPhone 15","n":"[imos Case]耐衝擊軍規保護殼for iPhone 15(6.1吋)(潮流黑)$890","r":890,"rmb":114,"tw":129,"b":"4710007835708"},{"k":"iPhone 15","n":"[imos Case]耐衝擊軍規保護殼for iPhone 15 Plus(6.7吋)(潮流黑)$890","r":890,"rmb":114,"tw":129,"b":"4710007835715"},{"k":"iPhone 15","n":"[imos Case]耐衝擊軍規保護殼for iPhone 15 Pro(6.1吋)(潮流黑)$890(預購中)","r":890,"rmb":114,"tw":129,"b":"4710007835722"},{"k":"iPhone 15","n":"[imos Case]耐衝擊軍規保護殼for iPhone 15 ProMax(6.7吋)(潮流黑)$890","r":890,"rmb":114,"tw":129,"b":"4710007835739"},{"k":"iPhone 15","n":"[imos Case]耐衝擊軍規保護殼for iPhone 15(6.1吋)(透明)$790","r":790,"rmb":104,"tw":119,"b":"4710007835869"},{"k":"iPhone 15","n":"[imos Case]耐衝擊軍規保護殼for iPhone 15 Plus(6.7吋)(透明)$790","r":790,"rmb":104,"tw":119,"b":"4710007835876"},{"k":"iPhone 15","n":"[imos Case]耐衝擊軍規保護殼for iPhone 15 Pro(6.1吋)(透明)$790(預購中)","r":790,"rmb":104,"tw":119,"b":"4710007835883"},{"k":"iPhone 15","n":"[imos Case]耐衝擊軍規保護殼for iPhone 15 ProMax(6.7吋)(透明$790","r":790,"rmb":104,"tw":119,"b":"4710007835890"},{"k":"iPhone 15","n":"[imos Case]耐衝擊軍規保護殼for iPhone 15(6.1吋)(藍莓色(藍))$890","r":890,"rmb":114,"tw":129,"b":"4710007835746"},{"k":"iPhone 15","n":"[imos Case]耐衝擊軍規保護殼for iPhone 15 Plus(6.7吋)(藍莓色(藍))$890","r":890,"rmb":114,"tw":129,"b":"4710007835753"},{"k":"iPhone 15","n":"[imos Case]耐衝擊軍規保護殼for iPhone 15 Pro(6.1吋)(藍莓色(藍))$890","r":890,"rmb":114,"tw":129,"b":"4710007835760"},{"k":"iPhone 15","n":"[imos Case]耐衝擊軍規保護殼for iPhone 15 ProMax(6.7吋)(藍莓色(藍))$890","r":890,"rmb":114,"tw":129,"b":"4710007835777"},{"k":"iPhone 15","n":"[imos Case]耐衝擊軍規保護殼for iPhone 15(6.1吋)(丁香紫色(紫))$890","r":890,"rmb":114,"tw":129,"b":"4710007835821"},{"k":"iPhone 15","n":"[imos Case]耐衝擊軍規保護殼for iPhone 15 Plus(6.7吋)(丁香紫色(紫))$890","r":890,"rmb":114,"tw":129,"b":"4710007835838"},{"k":"iPhone 15","n":"[imos Case]耐衝擊軍規保護殼for iPhone 15 Pro(6.1吋)(丁香紫色(紫))$890","r":890,"rmb":114,"tw":129,"b":"4710007835845"},{"k":"iPhone 15","n":"[imos Case]耐衝擊軍規保護殼for iPhone 15 ProMax(6.7吋)(丁香紫色(紫))$890","r":890,"rmb":114,"tw":129,"b":"4710007835852"},{"k":"iPhone 15","n":"[imos Case]耐衝擊軍規保護殼for iPhone 15(6.1吋)(亞麻綠色(綠))$890","r":890,"rmb":114,"tw":129,"b":"4710007835784"},{"k":"iPhone 15","n":"[imos Case]耐衝擊軍規保護殼for iPhone 15 Plus(6.7吋)(亞麻綠色(綠))$890","r":890,"rmb":114,"tw":129,"b":"4714000835791"},{"k":"iPhone 15","n":"[imos Case]耐衝擊軍規保護殼for iPhone 15 Pro(6.1吋)(亞麻綠色(綠))$890","r":890,"rmb":114,"tw":129,"b":"4710007835807"},{"k":"iPhone 15","n":"[imos Case]耐衝擊軍規保護殼for iPhone 15 ProMax(6.7吋)(亞麻綠色(綠))$890","r":890,"rmb":114,"tw":129,"b":"4710007835814"},{"k":"iPhone 15","n":"[imos Case](磁吸支架款)耐衝擊軍規保護殼for iPhone 15(6.1吋)(磁吸支架款)(潮流黑)$1290(預購中)","r":1290,"rmb":144,"tw":159,"b":"4710007834619"},{"k":"iPhone 15","n":"[imos Case](磁吸支架款)耐衝擊軍規保護殼for iPhone 15 Plus(6.7吋)(磁吸支架款)(潮流黑)$1290","r":1290,"rmb":144,"tw":159,"b":"4710007834626"},{"k":"iPhone 15","n":"[imos Case](磁吸支架款)耐衝擊軍規保護殼for iPhone 15 Pro(6.1吋)(磁吸支架款)(潮流黑)$1290","r":1290,"rmb":144,"tw":159,"b":"4710007834633"},{"k":"iPhone 15","n":"[imos Case](磁吸支架款)耐衝擊軍規保護殼for iPhone 15 Pro Max(6.7吋)(磁吸支架款)(潮流黑)$1290","r":1290,"rmb":144,"tw":159,"b":"4710007834640"},{"k":"iPhone 15","n":"[imos Case](磁吸支架款)耐衝擊軍規保護殼for iPhone 15(6.1吋)(磁吸支架款)(藍莓色)$1290","r":1290,"rmb":144,"tw":159,"b":"4710007835630"},{"k":"iPhone 15","n":"[imos Case](磁吸支架款)耐衝擊軍規保護殼for iPhone 15 Plus(6.7吋)(磁吸支架款)(藍莓色)$1290","r":1290,"rmb":144,"tw":159,"b":"4710007835647"},{"k":"iPhone 15","n":"[imos Case](磁吸支架款)耐衝擊軍規保護殼for iPhone 15 Pro(6.1吋)(磁吸支架款)(藍莓色)$1290","r":1290,"rmb":144,"tw":159,"b":"4710007835654"},{"k":"iPhone 15","n":"(售完為止)[imos Case](磁吸支架款)耐衝擊軍規保護殼for iPhone 15 Pro Max(6.7吋)(磁吸支架款)(藍莓色)$1290","r":1290,"rmb":144,"tw":159,"b":"4710007834664"},{"k":"iPhone 15","n":"[imos Case](磁吸支架款)耐衝擊軍規保護殼for iPhone 15(6.1吋)(磁吸支架款)(丁香紫色)$1290","r":1290,"rmb":144,"tw":159,"b":"4710007835661"},{"k":"iPhone 15","n":"[imos Case](磁吸支架款)耐衝擊軍規保護殼for iPhone 15 Plus(6.7吋)(磁吸支架款)(丁香紫色)$1290","r":1290,"rmb":144,"tw":159,"b":"4710007835678"},{"k":"iPhone 15","n":"[imos Case](磁吸支架款)耐衝擊軍規保護殼for iPhone 15 Pro(6.1吋)(磁吸支架款)(丁香紫色)$1290","r":1290,"rmb":144,"tw":159,"b":"4710007835685"},{"k":"iPhone 15","n":"[imos Case](磁吸支架款)耐衝擊軍規保護殼for iPhone 15 Pro Max(6.7吋)(磁吸支架款)(丁香紫色)$1290","r":1290,"rmb":144,"tw":159,"b":"4710007835692"},{"k":"iPhone 15","n":"[imos Case](磁吸支架款)耐衝擊軍規保護殼for iPhone 15(6.1吋)(磁吸支架款)(亞麻綠色)$1290","r":1290,"rmb":144,"tw":159,"b":"4710007835555"},{"k":"iPhone 15","n":"[imos Case](磁吸支架款)耐衝擊軍規保護殼for iPhone 15 Plus(6.7吋)(磁吸支架款)(亞麻綠色)$1290","r":1290,"rmb":144,"tw":159,"b":"4710007835562"},{"k":"iPhone 15","n":"[imos Case](磁吸支架款)耐衝擊軍規保護殼for iPhone 15 Pro(6.1吋)(磁吸支架款)(亞麻綠色)$1290(預購中)","r":1290,"rmb":144,"tw":159,"b":"4710007835579"},{"k":"iPhone 15","n":"[imos Case](磁吸支架款)耐衝擊軍規保護殼for iPhone 15 Pro Max(6.7吋)(磁吸支架款)(亞麻綠色)$1290","r":1290,"rmb":144,"tw":159,"b":"4710007835586"},{"k":"iPhone 15","n":"[imos Case](磁吸支架款)耐衝擊軍規保護殼for iPhone 15(6.1吋)(磁吸支架款)(透明)$1190","r":1190,"rmb":134,"tw":149,"b":"4710007835593"},{"k":"iPhone 15","n":"[imos Case](磁吸支架款)耐衝擊軍規保護殼for iPhone 15 Plus(6.7吋)(磁吸支架款)(透明)$1190","r":1190,"rmb":134,"tw":149,"b":"4710007835609"},{"k":"iPhone 15","n":"[imos Case](磁吸支架款)耐衝擊軍規保護殼for iPhone 15 Pro(6.1吋)(磁吸支架款)(透明)$1190(預購中)","r":1190,"rmb":134,"tw":149,"b":"4710007835616"},{"k":"iPhone 15","n":"[imos Case](磁吸支架款)耐衝擊軍規保護殼for iPhone 15 Pro Max(6.7吋)(磁吸支架款)(透明)$1190(預購中)","r":1190,"rmb":134,"tw":149,"b":"4710007835623"},{"k":"iPhone 15","n":"[imos Case](磁吸款)耐衝擊軍規保護殼for iPhone 15(6.1吋)(磁吸款)(潮流黑)$990(預購中)","r":990,"rmb":114,"tw":129,"b":"4710007835708"},{"k":"iPhone 15","n":"[imos Case](磁吸款)耐衝擊軍規保護殼for iPhone 15 Plus(6.7吋)(磁吸款)(潮流黑)$990","r":990,"rmb":114,"tw":129,"b":"4710007835715"},{"k":"iPhone 15","n":"[imos Case](磁吸款)耐衝擊軍規保護殼for iPhone 15 Pro(6.1吋)(磁吸款)(潮流黑)$990","r":990,"rmb":114,"tw":129,"b":"4710007835722"},{"k":"iPhone 15","n":"[imos Case](磁吸款)耐衝擊軍規保護殼for iPhone 15 Pro Max(6.7吋)(磁吸款)(潮流黑)$990","r":990,"rmb":114,"tw":129,"b":"4710007835739"},{"k":"iPhone 15","n":"[imos Case](磁吸款)耐衝擊軍規保護殼for iPhone 15(6.1吋)(磁吸款)(透明)$890","r":890,"rmb":104,"tw":119,"b":"4710007835869"},{"k":"iPhone 15","n":"[imos Case](磁吸款)耐衝擊軍規保護殼for iPhone 15 Plus(6.7吋)(磁吸款)(透明)$890","r":890,"rmb":104,"tw":119,"b":"4710007835876"},{"k":"iPhone 15","n":"[imos Case](磁吸款)耐衝擊軍規保護殼for iPhone 15 Pro(6.1吋)(磁吸款)(透明)$890","r":890,"rmb":104,"tw":119,"b":"4710007835883"},{"k":"iPhone 15","n":"[imos Case](磁吸款)耐衝擊軍規保護殼for iPhone 15 Pro Max(6.7吋)(磁吸款)(透明)$890","r":890,"rmb":104,"tw":119,"b":"4710007835890"},{"k":"iPhone 15","n":"[imos Case](磁吸款)耐衝擊軍規保護殼for iPhone 15(6.1吋)(磁吸款)(藍莓色)$990","r":990,"rmb":114,"tw":129,"b":"4710007835746"},{"k":"iPhone 15","n":"[imos Case](磁吸款)耐衝擊軍規保護殼for iPhone 15 Plus(6.7吋)(磁吸款)(藍莓色)$990","r":990,"rmb":114,"tw":129,"b":"4710007835753"},{"k":"iPhone 15","n":"[imos Case](磁吸款)耐衝擊軍規保護殼for iPhone 15 Pro(6.1吋)(磁吸款)(藍莓色)$990","r":990,"rmb":114,"tw":129,"b":"4710007835760"},{"k":"iPhone 15","n":"[imos Case](磁吸款)耐衝擊軍規保護殼for iPhone 15 Pro Max(6.7吋)(磁吸款)(藍莓色)$990","r":990,"rmb":114,"tw":129,"b":"4710007835777"},{"k":"iPhone 15","n":"[imos Case](磁吸款)耐衝擊軍規保護殼for iPhone 15(6.1吋)(磁吸款)(丁香紫色)$990","r":990,"rmb":114,"tw":129,"b":"4710007835821"},{"k":"iPhone 15","n":"[imos Case](磁吸款)耐衝擊軍規保護殼for iPhone 15 Plus(6.7吋)(磁吸款)(丁香紫色)$990","r":990,"rmb":114,"tw":129,"b":"4710007835838"},{"k":"iPhone 15","n":"[imos Case](磁吸款)耐衝擊軍規保護殼for iPhone 15 Pro(6.1吋)(磁吸款)(丁香紫色)$990","r":990,"rmb":114,"tw":129,"b":"4710007835845"},{"k":"iPhone 15","n":"[imos Case](磁吸款)耐衝擊軍規保護殼for iPhone 15 Pro Max(6.7吋)(磁吸款)(丁香紫色)$990","r":990,"rmb":114,"tw":129,"b":"4710007835852"},{"k":"iPhone 15","n":"[imos Case](磁吸款)耐衝擊軍規保護殼for iPhone 15(6.1吋)(磁吸款)(亞麻綠色)$990","r":990,"rmb":114,"tw":129,"b":"4710007835784"},{"k":"iPhone 15","n":"[imos Case](磁吸款)耐衝擊軍規保護殼for iPhone 15 Plus(6.7吋)(磁吸款)(亞麻綠色)$990","r":990,"rmb":114,"tw":129,"b":"4714000835791"},{"k":"iPhone 15","n":"[imos Case](磁吸款)耐衝擊軍規保護殼for iPhone 15 Pro(6.1吋)(磁吸款)(亞麻綠色)$990(預購中)","r":990,"rmb":114,"tw":129,"b":"4710007835807"},{"k":"iPhone 15","n":"[imos Case](磁吸款)耐衝擊軍規保護殼for iPhone 15 Pro Max(6.7吋)(磁吸款)(亞麻綠色)$990","r":990,"rmb":114,"tw":129,"b":"4710007835814"},{"k":"iPhone 15","n":"藍寶石鏡頭貼 for iPhone 15/15 Plus (鋁合金-黑)兩顆$550","r":550,"rmb":71.04,"tw":86.04,"b":"4710007833438"},{"k":"iPhone 15","n":"藍寶石鏡頭貼 for iPhone 15/15 Plus (鋁合金-淺藍)兩顆$550","r":550,"rmb":74,"tw":89,"b":"4710007834671"},{"k":"iPhone 15","n":"藍寶石鏡頭貼 for iPhone 15/15 Plus (鋁合金-淺綠)兩顆$550","r":550,"rmb":74,"tw":89,"b":"4710007834688"},{"k":"iPhone 15","n":"藍寶石鏡頭貼 for iPhone 15/15 Plus (鋁合金-淺黃)兩顆$550","r":550,"rmb":71.04,"tw":86.04,"b":"4710007834237"},{"k":"iPhone 15","n":"藍寶石鏡頭貼 for iPhone 15/15 Plus (鋁合金-淺粉)兩顆$550","r":550,"rmb":74,"tw":89,"b":"4710007834701"},{"k":"iPhone 15","n":"藍寶石鏡頭貼(PVDSS不鏽鋼系列) for iPhone 15/15 Plus(燒鈦色)兩顆$600","r":600,"rmb":75.84,"tw":90.84,"b":"4710007833483"},{"k":"iPhone 15","n":"藍寶石鏡頭貼(鈦合金Ti64) for iPhone 15 Pro(原色鈦)三顆$950","r":950,"rmb":114,"tw":129,"b":"4710007835203"},{"k":"iPhone 15","n":"藍寶石鏡頭貼(PVDSS不鏽鋼2.0) for iPhone 15 Pro(鈦黑色)三顆$800","r":800,"rmb":94,"tw":109,"b":"4710007834725"},{"k":"iPhone 15","n":"藍寶石鏡頭貼(PVDSS不鏽鋼2.0) for iPhone 15 Pro(鈦銀色)三顆$800","r":800,"rmb":94,"tw":109,"b":"4710007834732"},{"k":"iPhone 15","n":"藍寶石鏡頭貼(PVDSS不鏽鋼2.0) for iPhone 15 Pro(鈦灰色)三顆$800","r":800,"rmb":94,"tw":109,"b":"4710007834749"},{"k":"iPhone 15","n":"藍寶石鏡頭貼(PVDSS不鏽鋼2.0) for iPhone 15 Pro(鈦藍色)三顆$800","r":800,"rmb":94,"tw":109,"b":"4710007834756"},{"k":"iPhone 15","n":"藍寶石鏡頭貼(PVDSS不鏽鋼系列) for iPhone 15 Pro(燒鈦色)三顆$800","r":800,"rmb":94,"tw":109,"b":"4710007834763"},{"k":"iPhone 15","n":"藍寶石鏡頭貼(鈦合金Ti64) for iPhone 15 Pro Max(原色鈦)三顆$950","r":950,"rmb":114,"tw":129,"b":"4710007835210"},{"k":"iPhone 15","n":"藍寶石鏡頭貼(PVDSS不鏽鋼2.0) for iPhone 15 ProMax(鈦黑色)三顆$800","r":800,"rmb":94,"tw":109,"b":"4710007834770"},{"k":"iPhone 15","n":"藍寶石鏡頭貼(PVDSS不鏽鋼2.0) for iPhone 15 ProMax(鈦銀色)三顆$800","r":800,"rmb":94,"tw":109,"b":"4710007834787"},{"k":"iPhone 15","n":"藍寶石鏡頭貼(PVDSS不鏽鋼2.0) for iPhone 15 ProMax(鈦灰色)三顆$800","r":800,"rmb":94,"tw":109,"b":"4710007834794"},{"k":"iPhone 15","n":"藍寶石鏡頭貼(PVDSS不鏽鋼2.0) for iPhone 15 ProMax(鈦藍色)三顆$800","r":800,"rmb":94,"tw":109,"b":"4710007834800"},{"k":"iPhone 15","n":"藍寶石鏡頭貼(PVDSS不鏽鋼系列) for iPhone 15 ProMax(燒鈦色)三顆$800","r":800,"rmb":94,"tw":109,"b":"4710007834817"},{"k":"iPhone 15","n":"藍寶石鏡頭貼(PVDSS不鏽鋼系列) for iPhone 15 Pro-18K金色)三顆$950","r":950,"rmb":114,"tw":129,"b":"4710007833933"},{"k":"iPhone 15","n":"藍寶石鏡頭貼(PVDSS不鏽鋼系列) for iPhone 15 Pro Max-(18K金色)三顆$950","r":950,"rmb":114,"tw":129,"b":"4710007833940"},{"k":"iPhone 15","n":"(單鏡頭框)藍寶石鏡頭貼(鈦合金Ti64) for iPhone 15 Pro(原色鈦)三顆(無鏡片)$550","r":550,"rmb":114,"tw":129,"b":"4710007835203"},{"k":"iPhone 15","n":"(單鏡頭框)藍寶石鏡頭貼(鈦合金Ti64) for iPhone 15 ProMax(原色鈦)三顆(無鏡片)$550","r":550,"rmb":114,"tw":129,"b":"4710007835210"},{"k":"SAMSUNG Galaxy S25","n":"(2.5D黑邊)imos AR低反光玻璃貼for Samsung Galaxy S25 Edge $1290","r":1290,"rmb":143,"tw":158,"b":"4710007840016"},{"k":"SAMSUNG Galaxy S25","n":"超聲波指紋辨識低藍光RPF60保護貼for SAMSUNG Galaxy S25 $1390","r":1390,"rmb":152,"tw":167,"b":"4710007838068"},{"k":"SAMSUNG Galaxy S25","n":"超聲波指紋辨識低藍光RPF60保護貼for SAMSUNG Galaxy S25+ $1390","r":1390,"rmb":152,"tw":167,"b":"4710007838075"},{"k":"SAMSUNG Galaxy S25","n":"[imos Case](磁吸款)耐衝擊軍規保護殼 for Samsung Galaxy S25 (磁吸款)(黑)$890","r":890,"rmb":108,"tw":123,"b":"4710007838280"},{"k":"SAMSUNG Galaxy S25","n":"[imos Case](磁吸款)耐衝擊軍規保護殼 for Samsung Galaxy S25+ (磁吸款)(黑)$890(預購中)","r":890,"rmb":108,"tw":123,"b":"4710007838273"},{"k":"SAMSUNG Galaxy S25","n":"[imos Case](磁吸款)耐衝擊軍規保護殼 for Samsung Galaxy S25 Ultra(磁吸款)(黑)$890","r":890,"rmb":108,"tw":123,"b":"4710007838266"},{"k":"SAMSUNG Galaxy S25","n":"藍寶石鏡頭貼for SAMSUNG Galaxy S25(鋁合金) 三顆$750(預購中)","r":750,"rmb":94,"tw":109,"b":"4710007838006"},{"k":"SAMSUNG Galaxy S25","n":"藍寶石鏡頭貼for SAMSUNG Galaxy S25+(鋁合金) 三顆$750","r":750,"rmb":94,"tw":109,"b":"4710007838013"},{"k":"SAMSUNG Galaxy S25","n":"藍寶石鏡頭貼for SAMSUNG Galaxy S25 Ultra(鈦合金-銀色) 五顆$950(預購中)","r":950,"rmb":119,"tw":134,"b":"4710007838020"},{"k":"SAMSUNG Galaxy S25","n":"藍寶石鏡頭貼for SAMSUNG Galaxy S25 Ultra(不鏽鋼-燒鈦色) 五顆$800(預購中)","r":800,"rmb":104,"tw":119,"b":"4710007838105"},{"k":"SAMSUNG Galaxy S25","n":"藍寶石鏡頭貼for SAMSUNG Galaxy S25 Ultra(鋁合金-橘色) 五顆$800","r":800,"rmb":94,"tw":109,"b":"4710007838099"},{"k":"SAMSUNG Galaxy S25","n":"藍寶石鏡頭貼for SAMSUNG Galaxy S25 Edge (鋁合金-黑) 兩顆$550","r":550,"rmb":73,"tw":88,"b":"4710007839188"},{"k":"SAMSUNG Galaxy S24","n":"超聲波指紋辨識低藍光RPF60保護貼for SAMSUNG Galaxy S24 Ultra $1390","r":1390,"rmb":152,"tw":167,"b":"4710007838082"},{"k":"SAMSUNG Galaxy S24","n":"強化玻璃for SAMSUNG Galaxy S24 $990","r":990,"rmb":111.6,"tw":126.6,"b":"4710007835975"},{"k":"SAMSUNG Galaxy S24","n":"強化玻璃for SAMSUNG Galaxy S24+ $990","r":990,"rmb":111.6,"tw":126.6,"b":"4710007835982"},{"k":"SAMSUNG Galaxy S24","n":"強化玻璃for SAMSUNG Galaxy S24 Ultra $990(預購中)","r":990,"rmb":111.6,"tw":126.6,"b":"4710007835906"},{"k":"SAMSUNG Galaxy S24","n":"[imos Case] 耐衝擊軍規保護殼 for Samsung Galaxy S24 Ultra(透明)$790","r":790,"rmb":89.1,"tw":104.1,"b":"4710007835920"},{"k":"SAMSUNG Galaxy S24","n":"藍寶石鏡頭貼for SAMSUNG Galaxy S24+(鋁合金) 三顆$750","r":750,"rmb":94,"tw":109,"b":"4710007835951"},{"k":"SAMSUNG Galaxy S24","n":"藍寶石鏡頭貼for SAMSUNG Galaxy S24(鋁合金) 三顆$750","r":750,"rmb":94,"tw":109,"b":"4710007835937"},{"k":"SAMSUNG Galaxy S24","n":"藍寶石鏡頭貼for SAMSUNG Galaxy S24 Ultra(鈦合金-銀色) 五顆$950","r":950,"rmb":94,"tw":109,"b":"4710007837917"},{"k":"SAMSUNG Galaxy S24","n":"藍寶石鏡頭貼for SAMSUNG Galaxy S24 Ultra(鈦合金-燒鈦色) 五顆$950","r":950,"rmb":119,"tw":134,"b":"4710007835968"},{"k":"SAMSUNG Galaxy S24","n":"藍寶石鏡頭貼for SAMSUNG Galaxy S24 Ultra(鋁合金-銀色) 五顆$800","r":800,"rmb":94,"tw":109,"b":"4710007837917"},{"k":"SAMSUNG Galaxy Z Fold","n":"(2.5D透明)imos AR低反光玻璃貼for Samsung Galaxy Z Fold 7(外螢幕內縮版)$1290","r":1290,"rmb":143,"tw":158,"b":"4710007839515"},{"k":"SAMSUNG Galaxy Z Fold","n":"imos EX2 低藍光 RPF60+GRS驗證 for SAMSUNG Galaxy Z Fold 6 $1390(現貨可出，另開立)","r":1390,"rmb":152,"tw":167,"b":"4710007837207"},{"k":"SAMSUNG Galaxy Z Fold","n":"藍寶石鏡頭貼for SAMSUNG Galaxy Z Fold 7(黑框)$750","r":750,"rmb":92.5,"tw":107.5,"b":"4710007839522"},{"k":"SAMSUNG Galaxy Z Fold","n":"藍寶石鏡頭貼for SAMSUNG Galaxy Z Fold 6(銀框)$750","r":750,"rmb":92.5,"tw":107.5,"b":"4710007834039"},{"k":"SAMSUNG Galaxy Z Fold","n":"藍寶石鏡頭貼for SAMSUNG Galaxy Z Fold 6(藍框)$750","r":750,"rmb":92.5,"tw":107.5,"b":"4710007837160"},{"k":"SAMSUNG Galaxy Z Fold","n":"藍寶石鏡頭貼for SAMSUNG Galaxy Z Fold 6(粉框)$750","r":750,"rmb":92.5,"tw":107.5,"b":"4710007837177"},{"k":"SAMSUNG Galaxy Z Fold","n":"藍寶石鏡頭貼for SAMSUNG Galaxy Z Fold 5 $750","r":750,"rmb":89,"tw":104,"b":"4710007834831"},{"k":"SAMSUNG Galaxy Z Fold","n":"藍寶石鏡頭貼for SAMSUNG Galaxy Z Fold 4$750","r":750,"rmb":89,"tw":104,"b":"4710007833735"},{"k":"iPad","n":"imos EX2 低藍光 RPF60+GRS驗證 for iPad mini6 $1690(現貨可出，另開立)","r":1690,"rmb":192.6,"tw":207.6,"b":"4710007836149"},{"k":"iPad","n":"imos EX2 低藍光 RPF60+GRS驗證 for iPad Air 4/5(2020-22) & iPad Pro 11吋(2018-2022) $1790(現貨供應，另開立)","r":1790,"rmb":201.6,"tw":216.6,"b":"4710007836156"},{"k":"iPad","n":"imos EX2 低藍光 RPF60+GRS驗證 for iPad Pro 12.9吋(2018-2021) $1990(現貨可出，另開立)","r":1990,"rmb":201.6,"tw":216.6,"b":"4710007836194"},{"k":"iPad","n":"imos EX2 低藍光 RPF60+GRS驗證 for iPad A16/10代(10.9吋/2024/2025) $1790(預購中)","r":1790,"rmb":201.6,"tw":216.6,"b":"4710007836217"},{"k":"iPad","n":"imos EX2 低藍光 RPF60+GRS驗證 for iPad Pro 11吋(2024) $1790(現貨可出，另開立)","r":1790,"rmb":201.6,"tw":216.6,"b":"4710007836194"},{"k":"iPad","n":"imos EX2 低藍光 RPF60+GRS驗證 for iPad Pro 13吋(2024) $1990(現貨可出，另開立)","r":1990,"rmb":224.1,"tw":239.1,"b":"4710007836200"},{"k":"iPad","n":"imos EX2 低藍光 RPF60+GRS驗證 for iPad Air 11吋(2024/2025) $1790(現貨可出，另開立)","r":1790,"rmb":201.6,"tw":216.6,"b":"4710007836217"},{"k":"iPad","n":"imos EX2 低藍光 RPF60+GRS驗證 for iPad Air 13吋(2024/2025) $1990(預購中)","r":1990,"rmb":224.1,"tw":239.1,"b":"4710007836224"},{"k":"iPad","n":"imos EX2 低藍光 RPF60+GRS驗證 for iPad 10.2吋 $1790(現貨可出，另開立)","r":1790,"rmb":201.6,"tw":216.6,"b":"4710007836187"},{"k":"iPad","n":"強化玻璃for APPLE  iPad Pro 13吋(2024)$1590（售完為止）","r":1590,"rmb":165.6,"tw":180.6,"b":"4710007836033"},{"k":"iPad","n":"藍寶石鏡頭保護鏡for iPad Pro 11吋/12.9吋(太空灰)兩顆(贈平台)(2020-22)$550","r":550,"rmb":59,"tw":74,"b":"4710007837078"},{"k":"iPad","n":"藍寶石鏡頭保護貼for iPad Pro 11吋/13吋(2024/2025)單顆$350","r":350,"rmb":59,"tw":74,"b":"4710007837078"},{"k":"Apple Watch","n":"藍寶石鏡面CNC款不銹鋼金屬框手錶保護貼for Apple Watch Ultra(鏡面)一/二代/三代$1290","r":1290,"rmb":143.04,"tw":158.04,"b":"4710007833919"},{"k":"Apple Watch","n":"藍寶石霧面CNC款不銹鋼金屬框手錶保護貼for Apple Watch Ultra(霧面銀框)一/二代/三代$1090)","r":1090,"rmb":143.04,"tw":158.04,"b":"4710007833919"},{"k":"Apple Watch","n":"藍寶石霧面CNC款鋁合金框手錶保護貼for Apple Watch Ultra(霧面銀框)一/二代/三代$900","r":900,"rmb":128.64,"tw":143.64,"b":"4710007834107"},{"k":"Apple Watch","n":"藍寶石霧面CNC款鈦合金框手錶保護貼for Apple Watch Ultra(霧面銀框)一/二代/三代$1390","r":1390,"rmb":174,"tw":189,"b":"4710007834091"},{"k":"Apple Watch","n":"(霧面黑框)藍寶石霧面CNC款鋁合金框手錶保護貼for Apple Watch Ultra(霧面黑框)一/二代/三代$900","r":900,"rmb":129,"tw":144,"b":"4710007837733"},{"k":"Apple Watch","n":"(霧面橘框)藍寶石霧面CNC款鋁合金框手錶保護貼for Apple Watch Ultra(霧面橘框)一/二代/三代$900","r":900,"rmb":129,"tw":144,"b":"4710007837740"},{"k":"Apple Watch","n":"(霧面黑框)藍寶石霧面CNC款鈦合金框手錶保護貼for Apple Watch Ultra(霧面黑框)一/二代/三代$1390","r":1390,"rmb":129,"tw":144,"b":"4710007837733"},{"k":"Sony Xperia","n":"imos EX2 低藍光 RPF60+GRS驗證 for Sony Xperia 1 VI/VII  $1390(現貨可出，另開立)","r":1390,"rmb":152.1,"tw":167.1,"b":"4710007836347"},{"k":"Sony Xperia","n":"(全透明玻璃)美商康寧公司授權2.5D玻璃貼forSONY Xperia 1 IV(四代) $1090(全透明玻璃)","r":1090,"rmb":120.6,"tw":135.6,"b":"4710007833391"},{"k":"Sony Xperia","n":"(黑邊)美商康寧公司授權2.5D玻璃貼for SONY Xperia 1 V $1090","r":1090,"rmb":120.6,"tw":135.6,"b":"4710007834213"},{"k":"Sony Xperia","n":"(全透明)美商康寧公司授權2.5D玻璃貼for SONY Xperia 1 VI/VII(六/七代)$1090","r":1090,"rmb":120.6,"tw":135.6,"b":"4710007836071"},{"k":"Sony Xperia","n":"Sony Xperia Pro-I $600","r":600,"rmb":41.4,"tw":56.4,"b":"4710007833056"},{"k":"Sony Xperia","n":"Sony Xperia 1 正面 $600","r":600,"rmb":41.4,"tw":56.4,"b":"4710007833377"},{"k":"Sony Xperia","n":"Sony Xperia 1 背面 $600","r":600,"rmb":41.4,"tw":56.4,"b":"4710007833377"},{"k":"Sony Xperia","n":"Sony Xperia 1 II  正面$600","r":600,"rmb":41.4,"tw":56.4,"b":"4710007832257"},{"k":"Sony Xperia","n":"Sony Xperia 1 II  背面$600","r":600,"rmb":41.4,"tw":56.4,"b":"4710007832257"},{"k":"Sony Xperia","n":"Sony Xperia 5 正面$600","r":600,"rmb":41.4,"tw":56.4,"b":"4710007833377"},{"k":"Sony Xperia","n":"Sony Xperia 5 背面$600","r":600,"rmb":41.4,"tw":56.4,"b":"4710007833377"},{"k":"Sony Xperia","n":"Sony Xperia 5 II 正面$600","r":600,"rmb":41.4,"tw":56.4,"b":"4710007832257"},{"k":"Sony Xperia","n":"Sony Xperia 5 II 背面$600","r":600,"rmb":41.4,"tw":56.4,"b":"4710007832257"},{"k":"Sony Xperia","n":"Sony Xperia 5 III 背面$600","r":600,"rmb":41.4,"tw":56.4,"b":"4710007832257"},{"k":"Sony Xperia","n":"Sony Xperia 10   $600","r":600,"rmb":41.4,"tw":56.4,"b":"4710007833377"},{"k":"Sony Xperia","n":"Sony Xperia 10 II $600","r":600,"rmb":41.4,"tw":56.4,"b":"4710007832257"},{"k":"Sony Xperia","n":"Sony Xperia 10 Plus  $600","r":600,"rmb":41.4,"tw":56.4,"b":"4710007833377"},{"k":"Sony Xperia","n":"Sony Xperia 10 III  正面 $600","r":600,"rmb":41.4,"tw":56.4,"b":"4710007832257"},{"k":"Sony Xperia","n":"Sony Xperia 10 III 背面 $600","r":600,"rmb":41.4,"tw":56.4,"b":"4710007832257"},{"k":"Sony Xperia","n":"Sony Xperia XA $600","r":600,"rmb":41.4,"tw":56.4,"b":"4710007833377"},{"k":"Sony Xperia","n":"Sony Xperia XA 1 $600","r":600,"rmb":41.4,"tw":56.4,"b":"4710007833377"},{"k":"Sony Xperia","n":"Sony Xperia XA 2 $600","r":600,"rmb":41.4,"tw":56.4,"b":"4710007833377"},{"k":"Sony Xperia","n":"Sony Xperia XZ2  $600","r":600,"rmb":41.4,"tw":56.4,"b":"4710007833377"},{"k":"Sony Xperia","n":"Sony Xperia XA2 Ultra $600","r":600,"rmb":41.4,"tw":56.4,"b":"4710007833056"},{"k":"Sony Xperia","n":"Sony Xperia XA2 Plus $600","r":600,"rmb":41.4,"tw":56.4,"b":"4710007833056"},{"k":"Sony Xperia","n":"SONY Xperia XA 1 Plus $600","r":600,"rmb":41.4,"tw":56.4,"b":"4710007833377"},{"k":"Sony Xperia","n":"Sony Xperia XA 1 Ultra $600","r":600,"rmb":41.4,"tw":56.4,"b":"4710007833377"},{"k":"Sony Xperia","n":"Sony Xperia XZ2 Premium $600","r":600,"rmb":41.4,"tw":56.4,"b":"4710007833056"},{"k":"Sony Xperia","n":"Sony Xperia XA Ultra $600","r":600,"rmb":41.4,"tw":56.4,"b":"4710007833056"},{"k":"Sony Xperia","n":"Sony Xperia X Compact 正面 $600","r":600,"rmb":41.4,"tw":56.4,"b":"4710007833377"},{"k":"Sony Xperia","n":"Sony Xperia XZ1 正面$600","r":600,"rmb":41.4,"tw":56.4,"b":"4710007833377"},{"k":"Sony Xperia","n":"Sony Xperia XZ 1 Compact 正面 $600","r":600,"rmb":41.4,"tw":56.4,"b":"4710007833377"},{"k":"Sony Xperia","n":"Sony Xperia XZ3 $600","r":600,"rmb":41.4,"tw":56.4,"b":"4710007833377"},{"k":"Sony Xperia","n":"SONY Xperia L3 $600","r":600,"rmb":41.4,"tw":56.4,"b":"4710007833377"},{"k":"Sony Xperia","n":"Sony Xperia 1 V/IV正面$600","r":600,"rmb":41.4,"tw":56.4,"b":"4710007834305"},{"k":"Sony Xperia","n":"Sony Xperia 10 IV $600","r":600,"rmb":41.4,"tw":56.4,"b":"4710007833377"},{"k":"Sony Xperia","n":"Sony Xperia 10 V $600","r":600,"rmb":41.4,"tw":56.4,"b":"4710007833377"},{"k":"Sony Xperia","n":"Sony Xperia 5 III/IV $600","r":600,"rmb":41.4,"tw":56.4,"b":"4710007832257"},{"k":"Sony Xperia","n":"Sony Xperia 1 III 正面$600","r":600,"rmb":41.4,"tw":56.4,"b":"4710007832257"},{"k":"Sony Xperia","n":"Sony Xperia 5 V $600","r":600,"rmb":41.4,"tw":56.4,"b":"4710007833377"},{"k":"Sony Xperia","n":"Sony Xperia 1 VI/VII(六/七代)正面$600","r":600,"rmb":41.4,"tw":56.4,"b":"4710007834305"},{"k":"Sony Xperia","n":"[imos Case] 耐衝擊防震保護殼(M系列) for SONY Xperia 1 III(潮流黑)$790","r":790,"rmb":84.6,"tw":99.6,"b":"4710007832349"},{"k":"Sony Xperia","n":"[imos Case]TREND BOOST軍規認證雙料防震保護殼for SONY Xperia 1 VI(六代)(黑)$790","r":790,"rmb":84.6,"tw":99.6,"b":"4710007836088"},{"k":"Sony Xperia","n":"[imos Case]耐衝擊軍規保護殼 for SONY Xperia 1 VII(七代)(黑)$790","r":790,"rmb":85,"tw":100,"b":"4710007839201"},{"k":"Sony Xperia","n":"(無金屬框)藍寶石鏡頭保護貼for Sony Xperia PRO-I $600","r":600,"rmb":74,"tw":89,"b":"4710007833117"},{"k":"Sony Xperia","n":"(單金屬框)(黑框)鏡頭保護框for Sony Xperia 1 VI(六代)$450(黑框)(不含鏡片)","r":450,"rmb":59,"tw":74,"b":"4710007839195"},{"k":"Sony Xperia","n":"(單金屬框)(綠框)鏡頭保護框for Sony Xperia 1 VI(六代)$450(綠框)(不含鏡片)","r":450,"rmb":59,"tw":74,"b":"4710007839195"},{"k":"Sony Xperia","n":"(單金屬框)(米白框)鏡頭保護框for Sony Xperia 1 VI(六代)$450(米白框)(不含鏡片)","r":450,"rmb":54,"tw":69,"b":"4710007836118"},{"k":"Sony Xperia","n":"(單金屬框)(紅框)鏡頭保護框for Sony Xperia 1 VI(六代) $450(紅框)(不含鏡片)","r":450,"rmb":59,"tw":74,"b":"4710007839195"},{"k":"Sony Xperia","n":"(單金屬框)(黑框)鏡頭保護框for Sony Xperia 1 VII(七代)$450(黑框)(不含鏡片)","r":450,"rmb":59,"tw":74,"b":"4710007839195"},{"k":"Pixel","n":"超聲波指紋辨識低藍光RPF60保護貼for Google Pixel 9/9 Pro/10/10 Pro  $1390","r":1390,"rmb":152,"tw":167,"b":"4710007837481"},{"k":"Pixel","n":"超聲波指紋辨識低藍光RPF60保護貼for Google Pixel 9 Pro XL/10 Pro XL $1390","r":1390,"rmb":152,"tw":167,"b":"4710007837498"},{"k":"Xperia 10","n":"Sony Xperia 10   $600","r":600,"rmb":41.4,"tw":56.4,"b":"4710007833377"},{"k":"Xperia 10","n":"Sony Xperia 10 II $600","r":600,"rmb":41.4,"tw":56.4,"b":"4710007832257"},{"k":"Xperia 10","n":"Sony Xperia 10 Plus  $600","r":600,"rmb":41.4,"tw":56.4,"b":"4710007833377"},{"k":"Xperia 10","n":"Sony Xperia 10 III  正面 $600","r":600,"rmb":41.4,"tw":56.4,"b":"4710007832257"},{"k":"Xperia 10","n":"Sony Xperia 10 III 背面 $600","r":600,"rmb":41.4,"tw":56.4,"b":"4710007832257"},{"k":"Xperia 10","n":"Sony Xperia 10 IV $600","r":600,"rmb":41.4,"tw":56.4,"b":"4710007833377"},{"k":"Xperia 10","n":"Sony Xperia 10 V $600","r":600,"rmb":41.4,"tw":56.4,"b":"4710007833377"}];
+
+// ==================== STATE ====================
+const quantities = {};
+let activeFilter = 'all';
+let activeType = 'all';
+let searchTerm = '';
+let shippingMode = 'wholesale'; // 'direct' = 台灣直出, 'wholesale' = 批發
+
+function getUnitPrice(p) {
+  return shippingMode === 'direct' ? p.tw : p.rmb;
+}
+
+function getShippingLabel() {
+  return shippingMode === 'direct' ? '台灣直出' : '批發（大陸發貨）';
+}
+
+function setShipping(mode) {
+  shippingMode = mode;
+  document.getElementById('btnDirect').className = 'ship-btn' + (mode === 'direct' ? ' active' : '');
+  document.getElementById('btnWholesale').className = 'ship-btn' + (mode === 'wholesale' ? ' active-wholesale' : '');
+  updateSummary();
+  renderProducts();
+}
+
+// ==================== INIT ====================
+const brandGroups = {};
+CATALOG.forEach((p, i) => {
+  p._idx = i;
+  if (!brandGroups[p.k]) brandGroups[p.k] = [];
+  brandGroups[p.k].push(p);
+});
+
+const BRAND_ORDER = ["iPhone 17", "iPhone Air", "iPhone 16", "iPhone 15", "SAMSUNG Galaxy S25", "SAMSUNG Galaxy S25+", "SAMSUNG Galaxy S25 Ultra", "SAMSUNG Galaxy S25 Edge", "SAMSUNG Galaxy S24", "SAMSUNG Galaxy S24+", "SAMSUNG Galaxy S24 Ultra", "SAMSUNG Galaxy Z Fold 7", "SAMSUNG Galaxy Z Fold 6", "SAMSUNG Galaxy Z Fold", "iPad", "Apple Watch", "Sony Xperia", "Pixel", "OPPO", "Redmi"];
+
+function init() {
+  buildBrandFilters();
+  buildTypeFilters();
+  renderProducts();
+}
+
+// ==================== BRAND FILTERS ====================
+// Display names for filter tabs (shorter labels)
+const DISPLAY_NAMES = {
+  'iPhone 17': 'iPhone 17', 'iPhone Air': 'iPhone Air',
+  'iPhone 16': 'iPhone 16', 'iPhone 15': 'iPhone 15',
+  'SAMSUNG Galaxy S25': 'S25', 'SAMSUNG Galaxy S25+': 'S25+',
+  'SAMSUNG Galaxy S25 Ultra': 'S25 Ultra', 'SAMSUNG Galaxy S25 Edge': 'S25 Edge',
+  'SAMSUNG Galaxy S24': 'S24', 'SAMSUNG Galaxy S24+': 'S24+',
+  'SAMSUNG Galaxy S24 Ultra': 'S24 Ultra',
+  'SAMSUNG Galaxy Z Fold 7': 'Z Fold 7', 'SAMSUNG Galaxy Z Fold 6': 'Z Fold 6',
+  'SAMSUNG Galaxy Z Fold': 'Z Fold',
+  'iPad': 'iPad', 'Apple Watch': 'Apple Watch',
+  'Sony Xperia': 'Sony', 'Pixel': 'Pixel', 'OPPO': 'OPPO', 'Redmi': 'Redmi'
+};
+
+function buildBrandFilters() {
+  const el = document.getElementById('brandFilters');
+  let html = `<button class="filter-tab active" onclick="setFilter('all')">全部 <span class="count">${CATALOG.length}</span></button>`;
+  BRAND_ORDER.forEach(brand => {
+    if (brandGroups[brand]) {
+      const displayName = DISPLAY_NAMES[brand] || brand;
+      html += `<button class="filter-tab" onclick="setFilter('${brand}')">${displayName} <span class="count">${brandGroups[brand].length}</span></button>`;
+    }
+  });
+  el.innerHTML = html;
+}
+
+function setFilter(brand) {
+  activeFilter = brand;
+  document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+  event.target.closest('.filter-tab').classList.add('active');
+  renderProducts();
+}
+
+// ==================== TYPE FILTERS ====================
+function buildTypeFilters() {
+  const types = ['全部','玻璃貼','保護殼','鏡頭貼','藍寶石','霧面','防窺','磁吸','3D'];
+  const el = document.getElementById('typeFilters');
+  el.innerHTML = types.map(t =>
+    `<button class="type-tag ${t==='全部'?'active':''}" onclick="setType('${t}')">${t}</button>`
+  ).join('');
+}
+
+function setType(type) {
+  activeType = type === '全部' ? 'all' : type;
+  document.querySelectorAll('.type-tag').forEach(t => t.classList.remove('active'));
+  event.target.classList.add('active');
+  renderProducts();
+}
+
+// ==================== SEARCH ====================
+document.getElementById('searchInput').addEventListener('input', (e) => {
+  searchTerm = e.target.value.trim().toLowerCase();
+  renderProducts();
+});
+
+// ==================== RENDER ====================
+function renderProducts() {
+  const container = document.getElementById('productContainer');
+  let filtered = CATALOG;
+
+  if (activeFilter !== 'all') {
+    filtered = filtered.filter(p => p.k === activeFilter);
+  }
+
+  if (activeType !== 'all') {
+    filtered = filtered.filter(p => p.n.includes(activeType));
+  }
+
+  if (searchTerm) {
+    const terms = searchTerm.split(/\s+/);
+    filtered = filtered.filter(p => {
+      const name = p.n.toLowerCase();
+      return terms.every(t => name.includes(t));
+    });
+  }
+
+  if (filtered.length === 0) {
+    container.innerHTML = `<div class="empty-state fade-in"><div class="icon">🔍</div><p>找不到符合的商品</p></div>`;
+    return;
+  }
+
+  let html = '';
+  let currentGroup = '';
+
+  filtered.forEach(p => {
+    if (p.k !== currentGroup) {
+      currentGroup = p.k;
+      const groupCount = filtered.filter(x => x.k === p.k).length;
+      html += `<div class="group-header">${currentGroup} <span class="count">${groupCount} 項</span></div>`;
+    }
+
+    const qty = quantities[p._idx] || 0;
+    const unitPrice = getUnitPrice(p);
+    const subtotal = qty * unitPrice;
+    const hasQty = qty > 0;
+    const isPreorder = p.n.includes('預購中') || p.n.includes('預購');
+    const isSoldout = p.n.includes('售完為止');
+
+    let displayName = p.n;
+    let tags = '';
+    if (isPreorder) tags += '<span class="tag tag-preorder">預購中</span>';
+    if (isSoldout) tags += '<span class="tag tag-soldout">售完為止</span>';
+
+    html += `<div class="product-row ${hasQty?'has-qty':''}">
+      <div class="product-name">${tags}${escHtml(displayName)}</div>
+      <div class="product-price">$${p.r.toLocaleString()}</div>
+      <div class="product-cost ${shippingMode==='wholesale'?'price-active':''}">${p.rmb}</div>
+      <div class="product-cost ${shippingMode==='direct'?'price-active':''}">${p.tw}</div>
+      <div><input type="number" class="qty-input" min="0" value="${qty||''}" placeholder="0"
+        onchange="setQty(${p._idx}, this.value)"
+        onfocus="this.select()"></div>
+      <div class="product-subtotal ${hasQty?'has-value':''}">
+        ${hasQty ? '$'+subtotal.toLocaleString() : '-'}
+      </div>
+    </div>`;
+  });
+
+  container.innerHTML = html;
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ==================== QUANTITY ====================
+function setQty(idx, val) {
+  const qty = parseInt(val) || 0;
+  if (qty > 0) quantities[idx] = qty;
+  else delete quantities[idx];
+  updateSummary();
+  renderProducts();
+}
+
+function updateSummary() {
+  let items = 0, totalQty = 0, totalCost = 0;
+  Object.entries(quantities).forEach(([idx, qty]) => {
+    const p = CATALOG[idx];
+    items++;
+    totalQty += qty;
+    totalCost += qty * getUnitPrice(p);
+  });
+
+  document.getElementById('cartCount').textContent = items;
+  document.getElementById('cartTotal').textContent = totalCost.toLocaleString();
+  document.getElementById('statItems').textContent = items;
+  document.getElementById('statQty').textContent = totalQty;
+  document.getElementById('statTotal').textContent = '$' + totalCost.toLocaleString();
+  document.getElementById('btnExport').disabled = items === 0;
+  document.getElementById('btnSubmit').disabled = items === 0;
+}
+
+// ==================== SUBMIT MODAL ====================
+// ⚠️ 部署 Google Apps Script 後，把下面這行的網址換成你的 Web App URL
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwAGRRtW-W1VYlPbEklCFnX841ZfTPWLqKIyadWFov313FrtciD_u3VPBq_Phee7xI80Q/exec';
+
+function openSubmitModal() {
+  document.getElementById('submitModal').style.display = 'block';
+  document.getElementById('submitStatus').style.display = 'none';
+  const btnSend = document.getElementById('btnSend');
+  btnSend.style.display = '';
+  btnSend.disabled = false;
+  btnSend.textContent = '確認送出';
+  const cancelBtn = btnSend.previousElementSibling;
+  cancelBtn.textContent = '取消';
+  cancelBtn.style.background = 'transparent';
+  cancelBtn.style.color = 'var(--text-dim)';
+  cancelBtn.style.fontWeight = '';
+  document.getElementById('dealerName').focus();
+}
+
+function closeSubmitModal() {
+  document.getElementById('submitModal').style.display = 'none';
+}
+
+async function submitOrder() {
+  const dealer = document.getElementById('dealerName').value.trim();
+  if (!dealer) {
+    document.getElementById('dealerName').style.borderColor = '#ef4444';
+    document.getElementById('dealerName').focus();
+    return;
+  }
+  document.getElementById('dealerName').style.borderColor = 'var(--border)';
+
+  const note = document.getElementById('dealerNote').value.trim();
+  const statusEl = document.getElementById('submitStatus');
+  const btnSend = document.getElementById('btnSend');
+
+  // Build order data
+  const orders = [];
+  let totalQty = 0, totalCost = 0;
+  Object.entries(quantities).forEach(([idx, qty]) => {
+    const p = CATALOG[idx];
+    const unitPrice = getUnitPrice(p);
+    const sub = qty * unitPrice;
+    orders.push({ n: p.n, r: p.r, rmb: p.rmb, tw: p.tw, b: p.b, qty, sub, k: p.k, unitPrice });
+    totalQty += qty;
+    totalCost += sub;
+  });
+
+  orders.sort((a, b) => a.k.localeCompare(b.k));
+
+  const shippingLabel = getShippingLabel();
+
+  if (APPS_SCRIPT_URL === 'YOUR_GOOGLE_APPS_SCRIPT_URL_HERE') {
+    statusEl.style.display = 'block';
+    statusEl.style.background = '#fee2e2';
+    statusEl.style.color = '#b91c1c';
+    statusEl.textContent = '⚠️ 尚未設定 Apps Script 網址，請聯繫管理員';
+    return;
+  }
+
+  // Show loading
+  btnSend.disabled = true;
+  btnSend.textContent = '送出中...';
+  statusEl.style.display = 'block';
+  statusEl.style.background = '#dbeafe';
+  statusEl.style.color = '#1d4ed8';
+  statusEl.textContent = '⏳ 正在送出訂單，請稍候...';
+
+  try {
+    const res = await fetch(APPS_SCRIPT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({ orders, dealer, note, totalQty, totalCost, shippingMode, shippingLabel })
+    });
+    const result = await res.json();
+
+    if (result.success) {
+      statusEl.style.background = '#dcfce7';
+      statusEl.style.color = '#15803d';
+      statusEl.textContent = '✅ 訂單已送出！我們會盡快處理。';
+      btnSend.style.display = 'none';
+      const cancelBtn = btnSend.previousElementSibling;
+      cancelBtn.textContent = '關閉';
+      cancelBtn.style.background = 'var(--accent)';
+      cancelBtn.style.color = '#000';
+      cancelBtn.style.fontWeight = '700';
+      showToast('✅ 訂單已寄出至 Bryan 信箱');
+    } else {
+      throw new Error(result.message);
+    }
+  } catch (err) {
+    statusEl.style.background = '#fee2e2';
+    statusEl.style.color = '#b91c1c';
+    statusEl.textContent = '❌ 送出失敗：' + err.message + '，請改用下載 Excel 方式';
+    btnSend.disabled = false;
+    btnSend.textContent = '確認送出';
+  }
+}
+
+function clearAll() {
+  if (Object.keys(quantities).length === 0) return;
+  if (!confirm('確定清空所有已選商品？')) return;
+  Object.keys(quantities).forEach(k => delete quantities[k]);
+  updateSummary();
+  renderProducts();
+}
+
+// ==================== EXPORT EXCEL ====================
+function exportExcel() {
+  const orders = [];
+  const shippingLabel = getShippingLabel();
+  Object.entries(quantities).forEach(([idx, qty]) => {
+    const p = CATALOG[idx];
+    const unitPrice = getUnitPrice(p);
+    orders.push({
+      '商品名稱': p.n,
+      '建議售價': p.r,
+      '人民幣報價': p.rmb,
+      '台灣直出價': p.tw,
+      '條碼': p.b,
+      '數量': qty,
+      '單價': unitPrice,
+      '小計': qty * unitPrice,
+      '搜尋關鍵字': p.k
+    });
+  });
+
+  if (orders.length === 0) return;
+
+  // Sort by searchKey
+  orders.sort((a, b) => a['搜尋關鍵字'].localeCompare(b['搜尋關鍵字']));
+
+  // Add total row
+  const totalCost = orders.reduce((s, o) => s + o['小計'], 0);
+  orders.push({
+    '商品名稱': '【出貨方式：' + shippingLabel + '】',
+    '建議售價': '',
+    '人民幣報價': '',
+    '台灣直出價': '',
+    '條碼': '',
+    '數量': orders.reduce((s, o) => s + o['數量'], 0),
+    '單價': '合計',
+    '小計': totalCost,
+    '搜尋關鍵字': ''
+  });
+
+  const ws = XLSX.utils.json_to_sheet(orders);
+
+  // Column widths
+  ws['!cols'] = [
+    { wch: 65 },
+    { wch: 10 },
+    { wch: 10 },
+    { wch: 10 },
+    { wch: 15 },
+    { wch: 6 },
+    { wch: 8 },
+    { wch: 10 },
+    { wch: 15 }
+  ];
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, '訂單');
+
+  const today = new Date();
+  const dateStr = `${today.getMonth()+1}月${today.getDate()}日`;
+  const modeStr = shippingMode === 'direct' ? '直出' : '批發';
+  XLSX.writeFile(wb, `imos訂單_${modeStr}_${dateStr}.xlsx`);
+
+  showToast(`✅ 已下載 ${orders.length - 1} 項商品訂單（${shippingLabel}）`);
+}
+
+// ==================== TOAST ====================
+function showToast(msg) {
+  const toast = document.getElementById('toast');
+  toast.textContent = msg;
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 3000);
+}
+
+// ==================== GO ====================
+init();
+</script>
+</body>
+</html>
