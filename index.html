@@ -532,8 +532,8 @@ body {
       </div>
     </div>
     <div class="shipping-toggle">
-      <button class="ship-btn" id="btnDirect" onclick="setShipping('direct')">🏝️ 台灣直出</button>
-      <button class="ship-btn active-wholesale" id="btnWholesale" onclick="setShipping('wholesale')">📦 批發（大陸發貨）</button>
+      <button class="ship-btn" id="btnDirect" onclick="setShipping('direct')">🏝️ 直出</button>
+      <button class="ship-btn active-wholesale" id="btnWholesale" onclick="setShipping('wholesale')">📦 批發</button>
     </div>
     <div class="cart-summary">
       <div class="cart-badge" id="cartBadge">🛒 <span id="cartCount">0</span> 項</div>
@@ -616,7 +616,7 @@ function getUnitPrice(p) {
 }
 
 function getShippingLabel() {
-  return shippingMode === 'direct' ? '台灣直出' : '批發（大陸發貨）';
+  return shippingMode === 'direct' ? '直出' : '批發';
 }
 
 function setShipping(mode) {
