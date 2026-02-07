@@ -6,26 +6,26 @@ var items=[],running=false,stopFlag=false;
 
 var css=document.createElement('style');
 css.textContent=`
-#aop-panel{position:fixed;top:0;right:0;width:460px;height:100vh;background:#f5f5f0;z-index:99999;box-shadow:-4px 0 20px rgba(0,0,0,.15);overflow-y:auto;font-family:sans-serif;font-size:14px;color:#2a2a2a;display:block}
+#aop-panel{position:fixed;top:0;right:0;width:560px;height:100vh;background:#f5f5f0;z-index:99999;box-shadow:-4px 0 20px rgba(0,0,0,.15);overflow-y:auto;font-family:sans-serif;font-size:16px;color:#2a2a2a;display:block}
 #aop-panel *{box-sizing:border-box;margin:0;padding:0}
-.aop-hd{background:#fff;border-bottom:3px solid #e8a840;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:1}
-.aop-hd h3{font-size:16px}
-.aop-x{background:none;border:none;font-size:22px;cursor:pointer;color:#888;padding:2px 8px}
+.aop-hd{background:#fff;border-bottom:3px solid #e8a840;padding:16px 20px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:1}
+.aop-hd h3{font-size:20px}
+.aop-x{background:none;border:none;font-size:26px;cursor:pointer;color:#888;padding:2px 8px}
 .aop-x:hover{color:#333}
-.aop-bd{padding:16px}
-.aop-c{background:#fff;border-radius:8px;padding:16px;margin-bottom:12px;box-shadow:0 1px 4px rgba(0,0,0,.06)}
-.aop-c h4{font-size:14px;font-weight:700;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid #eee}
-.aop-up{border:2px dashed #ccc;border-radius:8px;padding:24px;text-align:center;cursor:pointer}
+.aop-bd{padding:20px}
+.aop-c{background:#fff;border-radius:8px;padding:20px;margin-bottom:14px;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.aop-c h4{font-size:16px;font-weight:700;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #eee}
+.aop-up{border:2px dashed #ccc;border-radius:8px;padding:28px;text-align:center;cursor:pointer}
 .aop-up:hover{border-color:#e8a840;background:#fffbf0}
 .aop-up input{display:none}
-.aop-tb{width:100%;border-collapse:collapse;font-size:12px;margin-top:8px}
-.aop-tb th{background:#f5f5f0;padding:6px 8px;text-align:left;font-weight:600;border-bottom:2px solid #ddd}
-.aop-tb td{padding:5px 8px;border-bottom:1px solid #eee;word-break:break-all}
-.aop-log{background:#1a1a1a;color:#ddd;font-family:monospace;font-size:12px;padding:10px;border-radius:6px;max-height:260px;overflow-y:auto;white-space:pre-wrap;line-height:1.5}
-.aop-btn{padding:10px 20px;border:none;border-radius:6px;font-size:14px;font-weight:600;cursor:pointer;width:100%}
+.aop-tb{width:100%;border-collapse:collapse;font-size:14px;margin-top:10px}
+.aop-tb th{background:#f5f5f0;padding:8px 10px;text-align:left;font-weight:600;border-bottom:2px solid #ddd}
+.aop-tb td{padding:7px 10px;border-bottom:1px solid #eee;word-break:break-all}
+.aop-log{background:#1a1a1a;color:#ddd;font-family:monospace;font-size:14px;padding:12px;border-radius:6px;max-height:320px;overflow-y:auto;white-space:pre-wrap;line-height:1.6}
+.aop-btn{padding:12px 24px;border:none;border-radius:6px;font-size:16px;font-weight:600;cursor:pointer;width:100%}
 .aop-go{background:#e8a840;color:#fff}.aop-go:hover{background:#d49530}
 .aop-stop{background:#e74c3c;color:#fff}.aop-stop:hover{background:#c0392b}
-.aop-res{margin-top:6px;padding:8px;border-radius:6px;font-size:13px}
+.aop-res{margin-top:8px;padding:10px;border-radius:6px;font-size:15px}
 .aop-ok{background:#d4edda;color:#155724}.aop-ng{background:#f8d7da;color:#721c24}
 `;
 document.head.appendChild(css);
@@ -170,7 +170,7 @@ function parseExcel(file){
           var name=row['\u5546\u54C1\u540D\u7A31']||'';
           var qty=parseInt(row['\u6578\u91CF'])||0;
           var kw=row['\u641C\u5C0B\u95DC\u9375\u5B57']||'';
-          if(name&&qty>0)parsed.push({name:name.trim(),qty:qty,kw:kw.trim()});
+          if(name&&qty>0&&!/^【|^出貨方式|^合計|^總計|^備註/.test(name.trim()))parsed.push({name:name.trim(),qty:qty,kw:kw.trim()});
         });
         resolve(parsed);
       }catch(err){reject(err);}
